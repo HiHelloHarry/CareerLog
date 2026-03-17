@@ -13,28 +13,45 @@ export async function generateCareerRecord(sessionId) {
   const timeline = db.getTimeline(sessionId);
   if (!timeline.length) return { error: '기록된 활동이 없습니다.' };
 
-  const timelineText = timeline.map(act => {
-    const start = fmt(act.started_at);
+  const session = db.getSession(sessionId);
+  const projectCtx = session?.project ? `프로젝트/클라이언트: ${session.project}` : null;
+
+  // 메모가 있는 활동과 없는 활동을 구분
+  const withMemo = timeline.filter(a => a.memo);
+  const withoutMemo = timeline.filter(a => !a.memo);
+
+  const fmtActivity = (act) => {
     const dur = durStr(act.duration_sec);
-    const memo = act.memo ? ` — ${act.memo}` : '';
-    return `${start}  ${act.app_name} | ${act.window_title || '(제목 없음)'}  (${dur})${memo}`;
-  }).join('\n');
+    const memo = act.memo ? `[메모: ${act.memo}]` : '';
+    const title = act.window_title ? `(${act.window_title})` : '';
+    return `  - ${act.app_name} ${title} ${dur}${memo ? ' ' + memo : ''}`;
+  };
 
-  const prompt = `다음은 오늘 업무 타임라인입니다. 각 활동과 메모를 분석해서 경력 기록으로 변환해주세요.
+  let timelineSection = '';
+  if (withMemo.length) {
+    timelineSection += `★ 메모가 있는 핵심 활동 (이것을 우선 활용하세요):\n${withMemo.map(fmtActivity).join('\n')}\n\n`;
+  }
+  if (withoutMemo.length) {
+    timelineSection += `기타 활동 (보조 컨텍스트):\n${withoutMemo.map(fmtActivity).join('\n')}`;
+  }
 
-[타임라인]
-${timelineText}
+  const prompt = `당신은 커리어 코치입니다. 아래 업무 활동 기록을 분석해서 이력서/경력기술서에 바로 쓸 수 있는 **구체적인** 경력 기록으로 변환해주세요.
+${projectCtx ? `\n${projectCtx}\n` : ''}
+[오늘의 업무 기록]
+${timelineSection}
 
-출력 형식:
-- 불렛 포인트 2~5개 핵심 업무 기록
-- 각 항목: "무엇을 했는지 + 결과/산출물" (STAR 구조 지향)
-- 수치 포함 (예: "3개 화면 디자인", "15명 참석 미팅")
-- 이력서/경력기술서에 바로 쓸 수 있는 수준
-- 한국어로 작성
+**엄격한 작성 규칙:**
+1. ★메모가 있는 활동은 반드시 기록에 포함 — 메모 내용이 핵심 업무입니다
+2. 앱 이름(Figma, VS Code 등)과 창 제목에서 실제 작업 내용을 유추하세요
+3. 절대 금지: "다양한 업무 수행", "효율적으로 처리", "관련 작업" 같은 모호한 표현
+4. 수치는 타임라인에서 직접 추출 (활동 시간, 창 수, 파일 수 등)
+5. 각 항목은 "동사 + 구체적 대상 + 결과/산출물" 구조로
+${projectCtx ? '6. 프로젝트/클라이언트명을 자연스럽게 포함' : ''}
 
-예시:
-• Figma로 온보딩 UX 3개 화면 신규 디자인 및 팀 리뷰 반영
-• 주간 팀 미팅(15명) — 2분기 기획 방향 합의 및 액션 아이템 5건 도출`;
+출력: 불렛 포인트 3~5개, 한국어, 접두어(•) 사용, 다른 설명 없이 기록만 출력
+
+나쁜 예: • 개발 관련 업무 수행
+좋은 예: • VS Code에서 로그인 API 인증 로직 구현 (약 2시간, 토큰 갱신 처리 포함)`;
 
   try {
     const client = getClient();

@@ -30,14 +30,19 @@ function nextId(arr) {
 }
 
 export const db = {
-  startSession() {
+  startSession(project = '') {
     const sessions = readJson('sessions.json');
     const id = nextId(sessions);
     const now = new Date().toISOString();
-    sessions.push({ id, started_at: now, ended_at: null, date: now.split('T')[0] });
+    sessions.push({ id, started_at: now, ended_at: null, date: now.split('T')[0], project: project.trim() });
     writeJson('sessions.json', sessions);
     _sessionId = id;
     return id;
+  },
+
+  getSession(sessionId) {
+    const sessions = readJson('sessions.json');
+    return sessions.find(s => s.id === sessionId) || null;
   },
 
   endSession() {
@@ -86,6 +91,23 @@ export const db = {
 
   getCareerRecords() {
     return readJson('career_records.json').reverse();
+  },
+
+  updateCareerRecord(recordId, newContent) {
+    const records = readJson('career_records.json');
+    const r = records.find(r => r.id === recordId);
+    if (r) {
+      r.content = newContent;
+      r.updated_at = new Date().toISOString();
+    }
+    writeJson('career_records.json', records);
+    return { success: true };
+  },
+
+  deleteAllData() {
+    writeJson('sessions.json', []);
+    writeJson('activities.json', []);
+    writeJson('career_records.json', []);
   },
 };
 
