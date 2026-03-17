@@ -1,0 +1,20 @@
+# 환경변수 (API 키 포함)
+.env
+
+# Python
+agents/outputs/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+electron-app/node_modules/
+app/node_modules/
+
+# 빌드 산출물
+electron-app/out/
+electron-app/.vite/
+app/dist/
+
+# 로컬 DB
+*.db

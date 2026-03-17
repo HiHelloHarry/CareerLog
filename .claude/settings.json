@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Bash(python -c \"import anthropic; print\\(''anthropic OK:'', anthropic.__version__\\)\")",
+      "Bash(pip show:*)",
+      "Bash(where python:*)",
+      "Bash(C:/Users/diverse/AppData/Local/Microsoft/WindowsApps/python.exe --version)",
+      "Bash(where py:*)",
+      "Bash(py --version)",
+      "Bash(py -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(py -c \"import anthropic; print\\(''OK:'', anthropic.__version__\\)\")",
+      "Bash(py -m pip install anthropic)",
+      "Bash(py agents/orchestrator.py --auto)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(py -c \":*)",
+      "Bash(py agents/02_researcher.py)",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const Store = require\\(''electron-store''\\); console.log\\(''electron-store OK:'', typeof Store\\)\")",
+      "Bash(node -e \"const { db } = require\\(''''./src/main/database.js''''\\)\")",
+      "Bash(npx electron:*)",
+      "Bash(node -e \"const e = require\\(''''c:/Users/diverse/Desktop/CareerLog/app/node_modules/electron''''\\); console.log\\(JSON.stringify\\(e\\)\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''version:'''', d.get\\(''''version''''\\)\\)\")",
+      "Bash(node -e \"const p = require\\(''c:/Users/diverse/Desktop/CareerLog/app/node_modules/electron/package.json''\\); console.log\\(''version:'', p.version\\)\")",
+      "Bash(node_modules/electron/dist/electron.exe src/main/debug.js)",
+      "Read(//c/Users/diverse/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\diverse\\Desktop\\CareerLog\\agents",
+      "c:\\Users\\diverse\\.claude"
+    ]
+  }
+}
