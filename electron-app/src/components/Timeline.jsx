@@ -3,10 +3,10 @@ import { useState } from 'react'
 export default function Timeline({ timeline, session, canGenerate, onSaveMemo, onGenerate, isGenerating }) {
   if (!timeline.length) {
     return (
-      <div className="text-center py-20 text-slate-400">
-        <div className="text-5xl mb-4">📋</div>
-        <p className="text-lg font-medium text-slate-500">기록된 업무가 없습니다</p>
-        <p className="text-sm mt-2">트레이 메뉴 또는 홈에서 업무를 시작하세요</p>
+      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)' }}>
+        <div style={{ fontSize: 40, marginBottom: 14 }}>▤</div>
+        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink2)' }}>기록된 업무가 없습니다</p>
+        <p style={{ fontSize: 12.5, marginTop: 6, color: 'var(--ink3)' }}>홈에서 업무를 시작하세요</p>
       </div>
     )
   }
@@ -18,55 +18,80 @@ export default function Timeline({ timeline, session, canGenerate, onSaveMemo, o
     : ''
 
   return (
-    <div>
-      {/* 세션 헤더 카드 */}
-      <div className="bg-gradient-to-r from-sky-500 to-sky-400 rounded-2xl p-5 mb-6 text-white shadow-md shadow-sky-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sky-100 text-sm mb-1">{dateLabel}</p>
-            <p className="text-xl font-bold">{formatDuration(totalSec)} 기록</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-sky-100 text-sm">{timeline.length}개 활동</p>
-              {session?.project && (
-                <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
-                  📁 {session.project}
-                </span>
-              )}
-            </div>
+    <div className="fade-up">
+      {/* 세션 헤더 */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(212,168,75,.15), var(--bg2))',
+        border: '1px solid rgba(212,168,75,.2)',
+        borderRadius: 16, padding: '16px 20px', marginBottom: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <p style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>{dateLabel}</p>
+          <p style={{
+            fontFamily: "'DM Serif Display', serif",
+            fontSize: 22, color: 'var(--ink)', letterSpacing: '-.3px',
+          }}>
+            {formatDuration(totalSec)} <span style={{ color: 'var(--ink2)', fontSize: 16 }}>기록</span>
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{timeline.length}개 활동</span>
+            {session?.project && (
+              <span style={{
+                fontSize: 11.5, background: 'var(--a-dim)', color: 'var(--a)',
+                border: '1px solid rgba(212,168,75,.25)',
+                padding: '2px 9px', borderRadius: 20, fontWeight: 600,
+              }}>📁 {session.project}</span>
+            )}
           </div>
-          {canGenerate ? (
-            <button
-              onClick={onGenerate}
-              disabled={isGenerating}
-              className="bg-white text-sky-600 hover:bg-sky-50 disabled:opacity-60 disabled:cursor-wait px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
-            >
-              {isGenerating ? (
-                <><span className="animate-spin inline-block">⟳</span> 분석 중...</>
-              ) : (
-                <>✨ 경력 기록 생성</>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={onGenerate}
-              className="bg-white text-amber-600 hover:bg-amber-50 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition-colors"
-            >
-              🔑 API 키 설정하기
-            </button>
-          )}
         </div>
+
+        {canGenerate ? (
+          <button
+            onClick={onGenerate}
+            disabled={isGenerating}
+            style={{
+              background: 'var(--a)', color: '#000',
+              border: 'none', borderRadius: 12,
+              padding: '10px 16px', fontSize: 13, fontWeight: 700,
+              cursor: isGenerating ? 'wait' : 'pointer',
+              opacity: isGenerating ? 0.6 : 1,
+              fontFamily: "'Noto Sans KR', sans-serif",
+              display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'all .15s',
+              flexShrink: 0,
+            }}
+            onMouseOver={e => { if (!isGenerating) e.currentTarget.style.background = '#e8bc5a' }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--a)' }}
+          >
+            {isGenerating ? <><Spinner /> 분석 중...</> : <>✦ 경력 기록 생성</>}
+          </button>
+        ) : (
+          <button
+            onClick={onGenerate}
+            style={{
+              background: 'var(--bg3)', color: 'var(--a)',
+              border: '1px solid rgba(212,168,75,.3)',
+              borderRadius: 12, padding: '10px 14px',
+              fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              flexShrink: 0, transition: 'all .15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--a-dim)' }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--bg3)' }}
+          >🔑 API 키 설정</button>
+        )}
       </div>
 
-      {/* 타임라인 */}
-      <div className="relative">
-        <div className="absolute left-[19px] top-3 bottom-3 w-0.5 bg-slate-100" />
-        <div className="space-y-2">
-          {timeline.map((activity, index) => (
-            <ActivityItem
-              key={activity.id || index}
-              activity={activity}
-              onSaveMemo={onSaveMemo}
-            />
+      {/* 타임라인 리스트 */}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          position: 'absolute', left: 19, top: 6, bottom: 6,
+          width: 1, background: 'var(--border)',
+        }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {timeline.map((activity, idx) => (
+            <ActivityItem key={activity.id || idx} activity={activity} onSaveMemo={onSaveMemo} />
           ))}
         </div>
       </div>
@@ -78,6 +103,7 @@ function ActivityItem({ activity, onSaveMemo }) {
   const [memo, setMemo] = useState(activity.memo || '')
   const [isEditing, setIsEditing] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [hover, setHover] = useState(false)
 
   const appIcon = getAppIcon(activity.app_name)
   const startTime = formatTime(activity.started_at)
@@ -93,54 +119,79 @@ function ActivityItem({ activity, onSaveMemo }) {
     setTimeout(() => setSaved(false), 2500)
   }
 
+  const dotBg = isMerged ? 'var(--a-dim)' : isShort ? 'var(--bg3)' : 'var(--bg2)'
+  const dotBorder = isMerged ? '2px solid rgba(212,168,75,.35)' : isShort ? '1px solid var(--border)' : '1.5px solid var(--border2)'
+  const cardBorder = hover ? 'var(--border2)' : isMerged ? 'rgba(212,168,75,.2)' : 'var(--border)'
+
   return (
-    <div className={`relative flex gap-4 ${isShort && !isMerged ? 'opacity-55' : ''}`}>
+    <div style={{ display: 'flex', gap: 14, opacity: isShort && !isMerged ? 0.5 : 1 }}>
       {/* 타임라인 점 */}
-      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 mt-0.5 ${
-        isMerged
-          ? 'bg-amber-50 border-2 border-amber-200'
-          : isShort
-          ? 'bg-slate-100'
-          : 'bg-white border-2 border-sky-100 shadow-sm'
-      }`}>
+      <div style={{
+        position: 'relative', zIndex: 10,
+        width: 40, height: 40, borderRadius: '50%',
+        background: dotBg, border: dotBorder,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 17, flexShrink: 0, marginTop: 2,
+      }}>
         {appIcon}
       </div>
 
       {/* 카드 */}
-      <div className={`flex-1 bg-white rounded-xl border ${
-        isMerged ? 'border-amber-100' : isShort ? 'border-slate-100' : 'border-slate-200'
-      } p-4 hover:border-slate-300 transition-colors mb-1`}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-slate-700 text-sm">{activity.app_name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                isMerged ? 'text-amber-700 bg-amber-50' : 'text-sky-600 bg-sky-50'
-              }`}>{duration}</span>
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          flex: 1, background: 'var(--bg2)',
+          border: `1px solid ${cardBorder}`,
+          borderRadius: 12, padding: '12px 14px',
+          transition: 'border-color .15s', marginBottom: 2,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13.5 }}>{activity.app_name}</span>
+              <span style={{
+                fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600,
+                background: isMerged ? 'var(--a-dim)' : 'var(--b-dim)',
+                color: isMerged ? 'var(--a)' : 'var(--b)',
+                border: `1px solid ${isMerged ? 'rgba(212,168,75,.25)' : 'rgba(95,168,211,.25)'}`,
+              }}>{duration}</span>
               {isMerged && (
-                <span
-                  className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full cursor-help"
-                  title="짧은 활동 여러 개가 하나로 통합되었습니다"
-                >
-                  🔗 {activity.merged_ids.length}개 통합
+                <span style={{
+                  fontSize: 11, padding: '2px 8px', borderRadius: 20,
+                  background: 'var(--a-dim)', color: 'var(--a)',
+                  border: '1px solid rgba(212,168,75,.25)', fontWeight: 600,
+                  cursor: 'help',
+                }} title="짧은 활동이 통합됨">
+                  🔗 {activity.merged_ids.length}개
                 </span>
               )}
             </div>
             {activity.window_title && (
-              <p className="text-xs text-slate-400 truncate mt-0.5">{activity.window_title}</p>
+              <p style={{
+                fontSize: 11.5, color: 'var(--ink3)',
+                marginTop: 3, overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{activity.window_title}</p>
             )}
           </div>
-          <div className="text-xs text-slate-400 font-mono shrink-0 text-right leading-tight">
+
+          <div style={{
+            fontSize: 11, color: 'var(--ink3)',
+            fontFamily: 'monospace', flexShrink: 0,
+            textAlign: 'right', lineHeight: 1.6,
+          }}>
             <div>{startTime}</div>
-            <div className="text-slate-200 text-center">↓</div>
+            <div style={{ color: 'var(--border2)', textAlign: 'center' }}>↓</div>
             <div>{endTime}</div>
           </div>
         </div>
 
         {/* 메모 */}
-        <div className="mt-3">
+        <div style={{ marginTop: 10 }}>
           {isEditing ? (
-            <div className="flex gap-2">
+            <div style={{ display: 'flex', gap: 6 }}>
               <input
                 type="text"
                 value={memo}
@@ -149,31 +200,66 @@ function ActivityItem({ activity, onSaveMemo }) {
                   if (e.key === 'Enter') handleSave()
                   if (e.key === 'Escape') { setIsEditing(false); setMemo(activity.memo || '') }
                 }}
-                placeholder="이 활동 메모 (Enter 저장, Esc 취소)"
-                className="flex-1 text-sm border border-sky-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                placeholder="메모 입력 (Enter 저장, Esc 취소)"
                 autoFocus
+                style={{
+                  flex: 1, fontSize: 12.5,
+                  background: 'var(--bg3)', border: '1.5px solid var(--a)',
+                  borderRadius: 8, padding: '7px 12px',
+                  color: 'var(--ink)', outline: 'none',
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                }}
               />
-              <button onClick={handleSave} className="px-3 py-1.5 bg-sky-500 text-white rounded-lg text-sm hover:bg-sky-600">저장</button>
-              <button onClick={() => { setIsEditing(false); setMemo(activity.memo || '') }} className="px-3 py-1.5 text-slate-400 rounded-lg text-sm hover:bg-slate-100">취소</button>
+              <button onClick={handleSave} style={btnStyle('var(--a)', '#000')}>저장</button>
+              <button onClick={() => { setIsEditing(false); setMemo(activity.memo || '') }} style={btnStyle('var(--bg3)', 'var(--ink2)')}>취소</button>
             </div>
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="text-xs flex items-center gap-1.5 transition-colors group"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 12, textAlign: 'left', padding: 0,
+              }}
             >
               {memo ? (
-                <span className="text-slate-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg">
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: 'var(--a-dim)', border: '1px solid rgba(212,168,75,.2)',
+                  padding: '4px 10px', borderRadius: 8,
+                  color: 'var(--ink2)', fontSize: 12,
+                }}>
                   📝 {memo}
-                  {saved && <span className="text-green-500 ml-2">✓</span>}
+                  {saved && <span style={{ color: 'var(--g)', marginLeft: 4 }}>✓</span>}
                 </span>
               ) : (
-                <span className="text-slate-300 group-hover:text-sky-400 transition-colors">+ 메모 추가</span>
+                <span style={{ color: 'var(--ink4)', transition: 'color .15s' }}
+                  onMouseOver={e => { e.currentTarget.style.color = 'var(--a)' }}
+                  onMouseOut={e => { e.currentTarget.style.color = 'var(--ink4)' }}>
+                  + 메모 추가
+                </span>
               )}
             </button>
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+function btnStyle(bg, color) {
+  return {
+    padding: '7px 12px', borderRadius: 8,
+    background: bg, color, border: 'none',
+    fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+    fontFamily: "'Noto Sans KR', sans-serif",
+    transition: 'opacity .15s',
+    flexShrink: 0,
+  }
+}
+
+function Spinner() {
+  return (
+    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', fontSize: 14 }}>⟳</span>
   )
 }
 

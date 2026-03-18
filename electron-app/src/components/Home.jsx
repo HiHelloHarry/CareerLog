@@ -1,13 +1,28 @@
 import { useState, useEffect } from 'react'
 
+const S = {
+  wrap: {
+    minHeight: '100%', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    padding: '28px 28px 24px',
+  },
+  dateLabel: {
+    fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4,
+    letterSpacing: '.3px',
+  },
+  greeting: {
+    fontFamily: "'DM Serif Display', serif", fontSize: 26,
+    color: 'var(--ink)', lineHeight: 1.2, letterSpacing: '-.4px',
+    textAlign: 'center', marginBottom: 24,
+  },
+  greetingEm: { color: 'var(--a)', fontStyle: 'italic' },
+}
+
 export default function Home({ isTracking, canGenerate, sessionStartedAt, onStart, onStop, onOpenTimeline, onOpenSettings }) {
   const [elapsed, setElapsed] = useState(0)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [project, setProject] = useState('')
 
-  // 확인 화면은 사용자가 버튼 누를 때까지 유지
-
-  // 경과 시간 타이머
   useEffect(() => {
     if (!isTracking) { setElapsed(0); return }
     const base = sessionStartedAt ? Date.now() - new Date(sessionStartedAt).getTime() : 0
@@ -16,7 +31,9 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
     return () => clearInterval(interval)
   }, [isTracking, sessionStartedAt])
 
-  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+  const today = new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+  })
 
   function formatElapsed(sec) {
     const h = Math.floor(sec / 3600)
@@ -31,26 +48,53 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
     setShowConfirmation(true)
   }
 
-  // 업무 시작 확인 오버레이
+  // ── 시작 확인 오버레이 ──
   if (showConfirmation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
-        <div className="bg-white rounded-2xl p-8 text-center max-w-sm shadow-xl border border-slate-100">
-          <div className="w-14 h-14 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">✓</span>
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">업무 기록이 시작되었습니다</h3>
-          <p className="text-sm text-slate-500 mb-5">
-            백그라운드에서 30초마다 활동이 자동 기록됩니다
+      <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+        <div style={{
+          background: 'var(--bg2)', border: '1px solid var(--border2)',
+          borderRadius: 20, padding: '32px 28px', textAlign: 'center', maxWidth: 340,
+          boxShadow: 'var(--shadow)',
+        }} className="fade-up">
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%',
+            background: 'var(--g-dim)', border: '2px solid rgba(82,183,136,.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 18px', fontSize: 24,
+            animation: 'popIn .5s cubic-bezier(.175,.885,.32,1.275)',
+          }}>✓</div>
+
+          <h3 style={{
+            fontFamily: "'DM Serif Display', serif", fontSize: 22,
+            color: 'var(--ink)', marginBottom: 8,
+          }}>기록이 <em style={{ color: 'var(--g)', fontStyle: 'italic' }}>시작</em>됩니다</h3>
+
+          <p style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 16 }}>
+            백그라운드에서 30초마다 활동을 자동 기록합니다
           </p>
-          <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 text-xs text-sky-700 text-left leading-relaxed mb-5">
-            💡 종료하려면 <strong>시스템 트레이(작업 표시줄 오른쪽 끝)</strong>의<br />
-            CareerLog 아이콘을 <strong>우클릭 → 「업무 종료」</strong>를 선택하거나,<br />
-            이 창을 다시 열어서 종료하세요
+
+          <div style={{
+            background: 'var(--bg3)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: '10px 14px',
+            fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, textAlign: 'left', marginBottom: 20,
+          }}>
+            💡 종료하려면 <strong style={{ color: 'var(--ink2)' }}>시스템 트레이</strong>의 CareerLog 아이콘을<br />
+            우클릭 → <strong style={{ color: 'var(--ink2)' }}>「업무 종료」</strong> 또는 이 창을 다시 열어 종료하세요
           </div>
+
           <button
             onClick={() => window.close()}
-            className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-colors"
+            style={{
+              width: '100%', padding: '12px 0',
+              background: 'var(--a)', color: '#000',
+              border: 'none', borderRadius: 12,
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              transition: 'all .15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = '#e8bc5a' }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--a)' }}
           >
             확인, 창 닫기
           </button>
@@ -60,66 +104,106 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 select-none">
-
+    <div style={S.wrap}>
       {/* API 키 없을 때 배너 */}
       {!canGenerate && !isTracking && (
         <button
           onClick={onOpenSettings}
-          className="mb-8 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2.5 rounded-xl text-sm hover:bg-amber-100 transition-colors"
+          style={{
+            marginBottom: 24,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(212,168,75,.08)', border: '1px solid rgba(212,168,75,.25)',
+            borderRadius: 10, padding: '9px 14px',
+            fontSize: 12.5, color: 'var(--a)', cursor: 'pointer',
+            transition: 'all .15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.background = 'rgba(212,168,75,.15)' }}
+          onMouseOut={e => { e.currentTarget.style.background = 'rgba(212,168,75,.08)' }}
         >
-          <span>⚠️</span>
-          <span>API 키를 설정해야 경력 기록을 생성할 수 있습니다</span>
-          <span className="text-amber-500 font-semibold">설정하기 →</span>
+          <span>⚠</span>
+          <span style={{ color: 'var(--ink2)' }}>API 키를 설정해야 경력 기록을 생성할 수 있습니다</span>
+          <span style={{ fontWeight: 700 }}>설정하기 →</span>
         </button>
       )}
 
-      {/* 로고 */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-sky-200">C</div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">CareerLog</h1>
-          <p className="text-xs text-slate-400">일하는 순간마다 경력이 쌓인다</p>
-        </div>
-      </div>
-
-      <p className="text-sm text-slate-400 mb-12">{today}</p>
+      {/* 날짜 + 인사 */}
+      <p style={S.dateLabel}>{today}</p>
+      <h1 style={S.greeting}>
+        오늘도 <em style={S.greetingEm}>기록</em>할 준비됐나요?
+      </h1>
 
       {!isTracking ? (
-        <div className="flex flex-col items-center gap-3">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%', maxWidth: 280 }}>
           <input
             type="text"
             value={project}
             onChange={e => setProject(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleStart()}
             placeholder="프로젝트 / 클라이언트 (선택)"
-            className="w-56 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300 text-center placeholder-slate-300"
+            style={{
+              width: '100%', padding: '11px 16px',
+              background: 'var(--bg3)', border: '1.5px solid var(--border2)',
+              borderRadius: 12, fontSize: 13.5, color: 'var(--ink)',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              outline: 'none', textAlign: 'center',
+              transition: 'border-color .15s',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--a)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border2)' }}
           />
           <button
             onClick={handleStart}
-            className="w-56 py-5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-lg font-semibold rounded-2xl shadow-lg shadow-sky-200 transition-all hover:scale-105 flex items-center justify-center gap-3"
+            style={{
+              width: '100%', padding: '16px 0',
+              background: 'var(--a)', color: '#000',
+              border: 'none', borderRadius: 14,
+              fontSize: 15, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: '0 6px 20px rgba(212,168,75,.25)',
+              transition: 'all .2s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = '#e8bc5a'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--a)'; e.currentTarget.style.transform = 'translateY(0)' }}
           >
-            <span className="text-xl">▶</span>
+            <span style={{ fontSize: 16 }}>▶</span>
             업무 시작
           </button>
-          <p className="text-xs text-slate-400">시작하면 백그라운드에서 자동 기록됩니다</p>
+          <p style={{ fontSize: 11.5, color: 'var(--ink3)' }}>시작하면 백그라운드에서 자동 기록됩니다</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-6">
-          {/* 타이머 */}
-          <div className="text-center bg-white border border-sky-100 rounded-2xl px-10 py-6 shadow-sm">
-            <div className="text-5xl font-mono font-bold text-sky-600 tracking-widest tabular-nums">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          {/* 타이머 카드 */}
+          <div style={{
+            background: 'var(--bg2)', border: '1px solid rgba(212,168,75,.2)',
+            borderRadius: 18, padding: '24px 40px', textAlign: 'center',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{
+              fontFamily: 'monospace', fontSize: 46, fontWeight: 700,
+              color: 'var(--a)', letterSpacing: 4,
+            }}>
               {formatElapsed(elapsed)}
             </div>
-            <div className="flex items-center justify-center gap-2 mt-3 text-sky-400 text-sm font-medium">
-              <span className="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></span>
-              기록 중
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 }}>
+              <RecordingDot />
+              <span style={{ fontSize: 13, color: 'var(--g)', fontWeight: 500 }}>기록 중</span>
             </div>
           </div>
 
           <button
             onClick={onStop}
-            className="w-56 py-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-base font-semibold rounded-2xl shadow-md transition-all hover:scale-105 flex items-center justify-center gap-2"
+            style={{
+              width: 240, padding: '14px 0',
+              background: 'var(--bg3)', color: 'var(--ink)',
+              border: '1.5px solid var(--border2)', borderRadius: 14,
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'all .15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--r)'; e.currentTarget.style.color = 'var(--r)' }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--ink)' }}
           >
             <span>⏹</span>
             업무 종료
@@ -127,14 +211,30 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
         </div>
       )}
 
-      <div className="mt-10">
-        <button
-          onClick={onOpenTimeline}
-          className="text-sm text-slate-400 hover:text-sky-500 transition-colors flex items-center gap-1"
-        >
-          기록 보기 <span className="text-xs">→</span>
-        </button>
-      </div>
+      {/* 기록 보기 링크 */}
+      <button
+        onClick={onOpenTimeline}
+        style={{
+          marginTop: 28, background: 'none', border: 'none',
+          fontSize: 12.5, color: 'var(--ink3)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 4,
+          transition: 'color .15s',
+        }}
+        onMouseOver={e => { e.currentTarget.style.color = 'var(--a)' }}
+        onMouseOut={e => { e.currentTarget.style.color = 'var(--ink3)' }}
+      >
+        기록 보기 <span style={{ fontSize: 11 }}>→</span>
+      </button>
     </div>
+  )
+}
+
+function RecordingDot() {
+  return (
+    <span style={{
+      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+      background: 'var(--g)',
+      animation: 'pulse 1.5s ease-in-out infinite',
+    }} />
   )
 }

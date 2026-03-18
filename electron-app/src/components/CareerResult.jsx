@@ -23,14 +23,9 @@ export default function CareerResult({ content, records, onBack }) {
   }
 
   async function handleSaveEdit() {
-    if (!displayRecord?.id) {
-      // 방금 생성된 콘텐츠는 records에서 첫 번째 찾기
-      const latestRecord = records?.[0]
-      if (latestRecord) {
-        await window.careerlog.updateCareerRecord(latestRecord.id, editContent)
-      }
-    } else {
-      await window.careerlog.updateCareerRecord(displayRecord.id, editContent)
+    const latestRecord = displayRecord?.id ? displayRecord : records?.[0]
+    if (latestRecord) {
+      await window.careerlog.updateCareerRecord(latestRecord.id, editContent)
     }
     setIsEditing(false)
     setEditSaved(true)
@@ -40,135 +35,191 @@ export default function CareerResult({ content, records, onBack }) {
   function formatDate(isoString) {
     if (!isoString) return ''
     return new Date(isoString).toLocaleDateString('ko-KR', {
-      month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit'
+      month: 'long', day: 'numeric', weekday: 'short',
+      hour: '2-digit', minute: '2-digit',
     })
   }
 
   if (!displayContent && (!records || records.length === 0)) {
     return (
-      <div className="text-center py-20 text-slate-400">
-        <div className="text-5xl mb-4">✨</div>
-        <p className="text-lg font-medium text-slate-500">아직 생성된 경력 기록이 없습니다</p>
-        <p className="text-sm mt-2">타임라인 탭에서 업무를 기록하고 경력 기록을 생성하세요</p>
-        <button onClick={onBack} className="mt-5 px-4 py-2 bg-sky-500 text-white rounded-lg text-sm hover:bg-sky-600">
-          타임라인으로 이동
-        </button>
+      <div style={{ textAlign: 'center', padding: '60px 0' }}>
+        <div style={{ fontSize: 40, marginBottom: 14 }}>✦</div>
+        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink2)' }}>아직 생성된 경력 기록이 없습니다</p>
+        <p style={{ fontSize: 12.5, marginTop: 6, color: 'var(--ink3)' }}>타임라인에서 업무를 기록하고 경력 기록을 생성하세요</p>
+        <button
+          onClick={onBack}
+          style={{
+            marginTop: 20, padding: '10px 20px',
+            background: 'var(--a)', color: '#000',
+            border: 'none', borderRadius: 10,
+            fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+            fontFamily: "'Noto Sans KR', sans-serif",
+          }}
+        >타임라인으로 이동</button>
       </div>
     )
   }
 
   return (
-    <div className="flex gap-5">
-      {/* 사이드바: 과거 기록 목록 */}
+    <div style={{ display: 'flex', gap: 18 }} className="fade-up">
+
+      {/* 사이드바: 기록 목록 */}
       {records && records.length > 0 && (
-        <div className="w-44 shrink-0">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 px-1">기록 목록</p>
-          <div className="space-y-1">
+        <div style={{ width: 140, flexShrink: 0 }}>
+          <p style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '.8px',
+            textTransform: 'uppercase', color: 'var(--ink3)',
+            marginBottom: 10, paddingLeft: 4,
+          }}>기록 목록</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {content && (
-              <button
+              <SidebarItem
+                active={!selectedRecord}
                 onClick={() => { setSelectedRecord(null); setIsEditing(false) }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors ${
-                  !selectedRecord ? 'bg-sky-50 text-sky-700 font-medium border border-sky-100' : 'text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                <div className="font-semibold">방금 생성됨 ✨</div>
-              </button>
+                label="방금 생성됨 ✦"
+                sub=""
+              />
             )}
             {records.map(r => (
-              <button
+              <SidebarItem
                 key={r.id}
+                active={selectedRecord?.id === r.id}
                 onClick={() => { setSelectedRecord(r); setIsEditing(false) }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors ${
-                  selectedRecord?.id === r.id ? 'bg-sky-50 text-sky-700 font-medium border border-sky-100' : 'text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                <div className="font-medium text-slate-600">
-                  {new Date(r.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                </div>
-                <div className="text-slate-400 mt-0.5">
-                  {new Date(r.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                {r.updated_at && <div className="text-amber-400 mt-0.5">수정됨</div>}
-              </button>
+                label={new Date(r.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                sub={new Date(r.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                updated={!!r.updated_at}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* 메인 콘텐츠 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between mb-4 gap-3">
+      {/* 메인 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* 헤더 */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
           <div>
-            <h2 className="text-xl font-semibold text-slate-800">경력 기록</h2>
+            <h2 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: 22, color: 'var(--ink)', letterSpacing: '-.3px',
+            }}>경력 기록</h2>
             {displayRecord?.created_at && (
-              <p className="text-xs text-slate-400 mt-0.5">{formatDate(displayRecord.created_at)}</p>
+              <p style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>
+                {formatDate(displayRecord.created_at)}
+              </p>
             )}
             {content && !selectedRecord && (
-              <p className="text-xs text-green-500 mt-0.5 font-medium">✨ 방금 생성됨</p>
+              <p style={{ fontSize: 11.5, color: 'var(--g)', marginTop: 3, fontWeight: 600 }}>✦ 방금 생성됨</p>
             )}
-            {editSaved && <p className="text-xs text-sky-500 mt-0.5">저장되었습니다</p>}
+            {editSaved && (
+              <p style={{ fontSize: 11.5, color: 'var(--b)', marginTop: 3 }}>저장되었습니다</p>
+            )}
           </div>
 
-          <div className="flex gap-2 shrink-0">
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {!isEditing ? (
               <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-sm hover:bg-slate-200 flex items-center gap-1.5 transition-colors"
-                >
-                  ✏️ 수정
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
-                >
-                  {copied ? '✓ 복사됨' : '📋 복사'}
-                </button>
+                <ActionBtn onClick={() => setIsEditing(true)} label="✏ 수정" />
+                <ActionBtn onClick={handleCopy} label={copied ? '✓ 복사됨' : '⎘ 복사'} gold={copied} />
               </>
             ) : (
               <>
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-3 py-1.5 bg-sky-500 text-white rounded-lg text-sm hover:bg-sky-600 transition-colors font-medium"
-                >
-                  저장
-                </button>
-                <button
-                  onClick={() => { setIsEditing(false); setEditContent(displayContent || '') }}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
-                >
-                  {copied ? '✓' : '📋'}
-                </button>
+                <ActionBtn onClick={handleSaveEdit} label="저장" primary />
+                <ActionBtn onClick={() => { setIsEditing(false); setEditContent(displayContent || '') }} label="취소" />
+                <ActionBtn onClick={handleCopy} label={copied ? '✓' : '⎘'} />
               </>
             )}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
+        {/* 콘텐츠 카드 */}
+        <div style={{
+          background: 'var(--bg2)', border: '1px solid var(--border)',
+          borderRadius: 14, padding: '20px 22px',
+        }}>
           {isEditing ? (
             <textarea
               value={editContent}
               onChange={e => setEditContent(e.target.value)}
-              className="w-full min-h-[280px] font-sans text-sm leading-7 text-slate-700 focus:outline-none resize-none"
               autoFocus
+              style={{
+                width: '100%', minHeight: 280,
+                background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 13.5, lineHeight: 1.9, color: 'var(--ink)',
+                fontFamily: "'Noto Sans KR', sans-serif",
+                resize: 'none',
+              }}
             />
           ) : (
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-slate-700">
+            <pre style={{
+              whiteSpace: 'pre-wrap',
+              fontSize: 13.5, lineHeight: 1.9,
+              color: 'var(--ink)',
+              fontFamily: "'Noto Sans KR', sans-serif",
+            }}>
               {displayContent}
             </pre>
           )}
         </div>
 
-        <p className="text-xs text-slate-400 mt-4 text-center">
-          이 기록은 로컬에 저장되었습니다. 이력서·경력기술서 작성 시 바로 활용하세요.
+        <p style={{
+          fontSize: 11.5, color: 'var(--ink3)',
+          textAlign: 'center', marginTop: 14,
+        }}>
+          이 기록은 로컬에 저장됩니다 · 이력서·경력기술서에 바로 활용하세요
         </p>
       </div>
     </div>
+  )
+}
+
+function SidebarItem({ active, onClick, label, sub, updated }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: '100%', textAlign: 'left',
+        padding: '9px 11px', borderRadius: 8,
+        background: active ? 'var(--a-dim)' : hover ? 'var(--bg3)' : 'transparent',
+        border: active ? '1px solid rgba(212,168,75,.25)' : '1px solid transparent',
+        cursor: 'pointer', transition: 'all .15s',
+      }}
+    >
+      <div style={{ fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? 'var(--a)' : 'var(--ink2)' }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{sub}</div>
+      )}
+      {updated && (
+        <div style={{ fontSize: 10.5, color: 'var(--a)', marginTop: 2 }}>수정됨</div>
+      )}
+    </button>
+  )
+}
+
+function ActionBtn({ onClick, label, primary, gold }) {
+  const [hover, setHover] = useState(false)
+  const bg = primary
+    ? hover ? '#e8bc5a' : 'var(--a)'
+    : hover ? 'var(--bg3)' : 'var(--bg2)'
+  const color = primary ? '#000' : gold ? 'var(--g)' : 'var(--ink2)'
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: '7px 13px', borderRadius: 8,
+        background: bg, color,
+        border: `1px solid ${primary ? 'transparent' : 'var(--border2)'}`,
+        fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+        fontFamily: "'Noto Sans KR', sans-serif",
+        transition: 'all .15s',
+      }}
+    >{label}</button>
   )
 }

@@ -24,7 +24,7 @@ export default function Settings({ onApiKeySaved }) {
       if (onApiKeySaved) onApiKeySaved()
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      setSaveError('저장 중 오류가 발생했습니다: ' + (e?.message || '알 수 없는 오류'))
+      setSaveError('저장 중 오류: ' + (e?.message || '알 수 없는 오류'))
     }
   }
 
@@ -41,119 +41,171 @@ export default function Settings({ onApiKeySaved }) {
   }
 
   return (
-    <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-slate-800">설정</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} className="fade-up">
+      <h2 style={{
+        fontFamily: "'DM Serif Display', serif",
+        fontSize: 22, color: 'var(--ink)', letterSpacing: '-.3px',
+        marginBottom: 2,
+      }}>설정</h2>
 
       {/* API 키 */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-base">🔑</span>
-          <h3 className="font-medium text-slate-700">Anthropic API 키</h3>
-          {maskedKey && (
-            <span className="ml-auto text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-mono">
-              {maskedKey}
-            </span>
-          )}
+      <SettingsCard icon="🔑" title="Anthropic API 키" badge={maskedKey}>
+        <div style={{
+          background: 'var(--bg3)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '12px 14px',
+          fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.7,
+          marginBottom: 14,
+        }}>
+          <p style={{ fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>왜 API 키가 필요한가요?</p>
+          <p>업무 기록은 이 기기에서만 동작합니다. <strong style={{ color: 'var(--ink)' }}>「경력 기록 생성」</strong>은 Claude AI에게 기록을 보내 이력서 문구로 변환하는 과정이 필요합니다.</p>
+          <p style={{ marginTop: 4, color: 'var(--ink4)' }}>기록 데이터는 생성 요청 시에만 전송됩니다.</p>
         </div>
 
-        {/* API 키가 왜 필요한지 설명 */}
-        <div className="bg-slate-50 rounded-lg p-3 mb-4 text-xs text-slate-500 leading-relaxed">
-          <p className="font-medium text-slate-600 mb-1">왜 API 키가 필요한가요?</p>
-          <p>업무 기록 자체는 이 기기에서만 동작합니다. 하지만 <strong>「경력 기록 생성」</strong> 기능은 Claude AI(Anthropic)에게 기록을 보내 이력서 문구로 변환하는 과정이 필요합니다. 이를 위해 API 키가 필요합니다.</p>
-          <p className="mt-1 text-slate-400">기록된 활동 데이터는 생성 요청 시에만 전송되며, 다른 용도로 사용되지 않습니다.</p>
-        </div>
-
-        <p className="text-xs text-slate-400 mb-3">
-          API 키가 없다면 아래 링크에서 무료로 발급받을 수 있습니다.
-        </p>
         <a
-          href="https://console.anthropic.com/settings/keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-lg mb-4 transition-colors"
+          href="#"
           onClick={e => { e.preventDefault(); window.open('https://console.anthropic.com/settings/keys') }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, color: 'var(--a)',
+            background: 'var(--a-dim)', border: '1px solid rgba(212,168,75,.2)',
+            padding: '7px 12px', borderRadius: 8,
+            marginBottom: 14, textDecoration: 'none',
+            transition: 'background .15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.background = 'var(--a-mid)' }}
+          onMouseOut={e => { e.currentTarget.style.background = 'var(--a-dim)' }}
         >
           🔗 Anthropic Console에서 API 키 발급받기 →
         </a>
-        <div className="flex gap-2">
+
+        <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="password"
             value={apiKey}
             onChange={e => { setApiKey(e.target.value); setSaveError('') }}
             onKeyDown={e => e.key === 'Enter' && handleSaveApiKey()}
             placeholder={maskedKey ? '새 키로 교체하려면 입력...' : 'sk-ant-...'}
-            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+            style={{
+              flex: 1, padding: '10px 14px',
+              background: 'var(--bg3)', border: '1.5px solid var(--border2)',
+              borderRadius: 10, fontSize: 13.5, color: 'var(--ink)',
+              fontFamily: "'Noto Sans KR', sans-serif", outline: 'none',
+              transition: 'border-color .15s',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--a)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border2)' }}
           />
           <button
             onClick={handleSaveApiKey}
             disabled={!apiKey.trim()}
-            className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm hover:bg-sky-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
-          >
-            저장
-          </button>
+            style={{
+              padding: '10px 18px',
+              background: apiKey.trim() ? 'var(--a)' : 'var(--bg3)',
+              color: apiKey.trim() ? '#000' : 'var(--ink3)',
+              border: 'none', borderRadius: 10,
+              fontSize: 13.5, fontWeight: 700, cursor: apiKey.trim() ? 'pointer' : 'not-allowed',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              transition: 'all .15s', flexShrink: 0,
+            }}
+          >저장</button>
         </div>
+
         {saved && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-            <span className="text-base">✓</span>
-            <span>API 키가 저장되었습니다</span>
-          </div>
+          <StatusMsg type="success">✓ API 키가 저장되었습니다</StatusMsg>
         )}
         {saveError && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            <span>⚠</span>
-            <span>{saveError}</span>
-          </div>
+          <StatusMsg type="error">⚠ {saveError}</StatusMsg>
         )}
         {!maskedKey && !saved && (
-          <p className="mt-3 text-xs text-amber-500 flex items-center gap-1">
+          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--a)', display: 'flex', alignItems: 'center', gap: 5 }}>
             ⚠ API 키가 없으면 경력 기록 생성 기능을 사용할 수 없습니다
           </p>
         )}
-      </div>
+      </SettingsCard>
 
       {/* 감지 설정 */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-base">⚙️</span>
-          <h3 className="font-medium text-slate-700">감지 설정</h3>
+      <SettingsCard icon="⚙" title="감지 설정">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {[
+            ['감지 간격', '30초'],
+            ['활동 병합 기준', '5분 미만'],
+            ['버전', 'v0.1.0'],
+          ].map(([label, value], i, arr) => (
+            <div key={label} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '11px 0',
+              borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+            }}>
+              <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{label}</span>
+              <span style={{
+                fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
+                background: 'var(--bg3)', padding: '3px 11px', borderRadius: 8,
+              }}>{value}</span>
+            </div>
+          ))}
         </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-slate-50">
-            <span className="text-sm text-slate-600">감지 간격</span>
-            <span className="text-sm font-medium text-slate-700 bg-slate-50 px-3 py-1 rounded-lg">30초</span>
-          </div>
-          <div className="flex items-center justify-between py-2 border-b border-slate-50">
-            <span className="text-sm text-slate-600">활동 병합 기준</span>
-            <span className="text-sm font-medium text-slate-700 bg-slate-50 px-3 py-1 rounded-lg">5분 미만</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-slate-600">버전</span>
-            <span className="text-sm text-slate-400">v0.1.0</span>
-          </div>
-        </div>
-      </div>
+      </SettingsCard>
 
       {/* 데이터 */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-base">🗄️</span>
-          <h3 className="font-medium text-slate-700">데이터</h3>
-        </div>
-        <p className="text-xs text-slate-400 mb-5">
+      <SettingsCard icon="🗄" title="데이터">
+        <p style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16, lineHeight: 1.6 }}>
           모든 세션, 활동 기록, 경력 기록이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
         </p>
         <button
           onClick={handleDeleteAll}
           disabled={deleting}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            deleteConfirm
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'border border-red-200 text-red-400 hover:bg-red-50'
-          }`}
+          style={{
+            padding: '9px 16px', borderRadius: 9,
+            background: deleteConfirm ? 'var(--r)' : 'transparent',
+            color: deleteConfirm ? '#fff' : 'var(--r)',
+            border: `1px solid ${deleteConfirm ? 'var(--r)' : 'rgba(224,112,112,.3)'}`,
+            fontSize: 13, fontWeight: 600, cursor: deleting ? 'wait' : 'pointer',
+            fontFamily: "'Noto Sans KR', sans-serif",
+            transition: 'all .15s',
+          }}
         >
           {deleting ? '삭제 중...' : deleteConfirm ? '⚠ 정말 삭제하시겠습니까? (다시 클릭)' : '모든 기록 삭제'}
         </button>
+      </SettingsCard>
+    </div>
+  )
+}
+
+function SettingsCard({ icon, title, badge, children }) {
+  return (
+    <div style={{
+      background: 'var(--bg2)', border: '1px solid var(--border)',
+      borderRadius: 14, padding: '18px 20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <span style={{ fontSize: 15 }}>{icon}</span>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{title}</h3>
+        {badge && (
+          <span style={{
+            fontSize: 11, color: 'var(--g)', background: 'var(--g-dim)',
+            border: '1px solid rgba(82,183,136,.25)',
+            padding: '2px 9px', borderRadius: 20,
+            fontFamily: 'monospace', fontWeight: 600,
+          }}>{badge}</span>
+        )}
       </div>
+      {children}
+    </div>
+  )
+}
+
+function StatusMsg({ type, children }) {
+  const isSuccess = type === 'success'
+  return (
+    <div style={{
+      marginTop: 10, padding: '9px 13px',
+      background: isSuccess ? 'var(--g-dim)' : 'var(--r-dim)',
+      border: `1px solid ${isSuccess ? 'rgba(82,183,136,.25)' : 'rgba(224,112,112,.25)'}`,
+      borderRadius: 8, fontSize: 13,
+      color: isSuccess ? 'var(--g)' : 'var(--r)',
+      display: 'flex', alignItems: 'center', gap: 7,
+    }}>
+      {children}
     </div>
   )
 }
