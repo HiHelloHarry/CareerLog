@@ -22,9 +22,6 @@ function writeJson(file, data) {
   fs.writeFileSync(path.join(getDataDir(), file), JSON.stringify(data, null, 2), 'utf8');
 }
 
-let _sessionId = 0;
-let _activityId = 0;
-
 function nextId(arr) {
   return arr.length > 0 ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 }
@@ -36,13 +33,11 @@ export const db = {
     const now = new Date().toISOString();
     sessions.push({ id, started_at: now, ended_at: null, date: now.split('T')[0], project: project.trim() });
     writeJson('sessions.json', sessions);
-    _sessionId = id;
     return id;
   },
 
   getSession(sessionId) {
-    const sessions = readJson('sessions.json');
-    return sessions.find(s => s.id === sessionId) || null;
+    return readJson('sessions.json').find(s => s.id === sessionId) || null;
   },
 
   endSession() {
@@ -57,6 +52,18 @@ export const db = {
     return sessions.length ? sessions[sessions.length - 1] : null;
   },
 
+  // 완료된 세션 목록 (최신순, 최대 30개)
+  getSessions() {
+    const sessions = readJson('sessions.json');
+    const records  = readJson('career_records.json');
+    const recordedSessionIds = new Set(records.map(r => r.session_id));
+    return sessions
+      .filter(s => s.ended_at)
+      .reverse()
+      .slice(0, 30)
+      .map(s => ({ ...s, has_career_record: recordedSessionIds.has(s.id) }));
+  },
+
   saveActivity(sessionId, appName, windowTitle, startedAt, endedAt) {
     const activities = readJson('activities.json');
     const id = nextId(activities);
@@ -67,7 +74,12 @@ export const db = {
   },
 
   getTimeline(sessionId) {
-    const activities = readJson('activities.json').filter(a => a.session_id === sessionId);
+    // blacklist 필터링
+    const settings = readAppSettings();
+    const blacklist = (settings.blacklist || []).map(a => a.toLowerCase());
+    const activities = readJson('activities.json')
+      .filter(a => a.session_id === sessionId)
+      .filter(a => !blacklist.includes((a.app_name || '').toLowerCase()));
     activities.sort((a, b) => a.started_at.localeCompare(b.started_at));
     return mergeShortActivities(activities);
   },
@@ -80,24 +92,60 @@ export const db = {
     return { success: true };
   },
 
-  saveCareerRecord(sessionId, content, rawTimeline) {
+  // 태그(업무 설명) 저장 — memo 필드 활용
+  saveTag(activityId, tag) {
+    const activities = readJson('activities.json');
+    const a = activities.find(a => a.id === activityId);
+    if (a) a.memo = tag;
+    writeJson('activities.json', activities);
+    return { success: true };
+  },
+
+  // idle 복원: 마지막 활동의 ended_at을 idle 시작 직전으로 조정
+  extendActivity(activityId, newEndedAt) {
+    const activities = readJson('activities.json');
+    const a = activities.find(a => a.id === activityId);
+    if (a) {
+      a.ended_at     = newEndedAt;
+      a.duration_sec = Math.round((new Date(newEndedAt) - new Date(a.started_at)) / 1000);
+    }
+    writeJson('activities.json', activities);
+  },
+
+  saveCareerRecord(sessionId, content, rawTimeline, starData = null, template = 'star') {
     const records = readJson('career_records.json');
     const id = nextId(records);
     const now = new Date().toISOString();
-    records.push({ id, session_id: sessionId, date: now.split('T')[0], content, raw_timeline: rawTimeline, created_at: now });
+    records.push({
+      id,
+      session_id: sessionId,
+      date: now.split('T')[0],
+      content,
+      star: starData,
+      template,
+      raw_timeline: rawTimeline,
+      created_at: now,
+    });
     writeJson('career_records.json', records);
     return id;
   },
 
   getCareerRecords() {
-    return readJson('career_records.json').reverse();
+    const records  = readJson('career_records.json').reverse();
+    const sessions = readJson('sessions.json');
+    const sessionMap = new Map(sessions.map(s => [s.id, s]));
+    return records.map(r => ({
+      ...r,
+      project: sessionMap.get(r.session_id)?.project || '',
+    }));
   },
 
-  updateCareerRecord(recordId, newContent) {
+  updateCareerRecord(recordId, newContent, starData) {
     const records = readJson('career_records.json');
     const r = records.find(r => r.id === recordId);
     if (r) {
       r.content = newContent;
+      if (starData !== undefined) r.star = starData;
       r.updated_at = new Date().toISOString();
     }
     writeJson('career_records.json', records);
@@ -109,7 +157,196 @@ export const db = {
     writeJson('activities.json', []);
     writeJson('career_records.json', []);
   },
+
+  // 샘플 데이터 삽입 (온보딩 체험용)
+  insertSampleData() {
+    const sessions   = readJson('sessions.json');
+    const activities = readJson('activities.json');
+    const records    = readJson('career_records.json');
+
+    // 어제 날짜 기준
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const base = (h, m = 0) => {
+      const d = new Date(yesterday);
+      d.setHours(h, m, 0, 0);
+      return d.toISOString();
+    };
+
+    const sessionId = nextId(sessions);
+    sessions.push({
+      id: sessionId,
+      started_at: base(9),
+      ended_at:   base(17, 30),
+      date:       yesterday.toISOString().split('T')[0],
+      project:    '샘플 프로젝트',
+      is_sample:  true,
+    });
+
+    const rawActs = [
+      { app: 'Visual Studio Code', title: 'auth.ts — CareerLog',         h: 9,  m: 0,  dur: 65 },
+      { app: 'Chrome',             title: 'OAuth 2.0 flow - MDN Web Docs', h: 10, m: 5,  dur: 20, memo: '소셜 로그인 플로우 리서치' },
+      { app: 'Slack',              title: '# dev-team',                   h: 10, m: 25, dur: 15, memo: '로그인 이슈 팀 공유' },
+      { app: 'Visual Studio Code', title: 'LoginButton.tsx — CareerLog',  h: 10, m: 40, dur: 50 },
+      { app: 'Figma',              title: '로그인 화면 v3 — CareerLog',    h: 11, m: 30, dur: 40, memo: '로그인 UI 디자인 확인' },
+      { app: 'Visual Studio Code', title: 'auth.test.ts — CareerLog',     h: 12, m: 10, dur: 30 },
+      { app: 'Terminal',           title: 'npm test',                     h: 12, m: 40, dur: 20 },
+      { app: 'Slack',              title: '# product',                    h: 13, m: 0,  dur: 10 },
+      { app: 'Notion',             title: '로그인 기능 스펙 문서',          h: 13, m: 10, dur: 25, memo: '스펙 문서 업데이트' },
+      { app: 'Visual Studio Code', title: 'userStore.ts — CareerLog',     h: 13, m: 35, dur: 55 },
+      { app: 'Chrome',             title: 'Google Sign-In for Web — docs', h: 14, m: 30, dur: 15 },
+      { app: 'Visual Studio Code', title: 'App.tsx — CareerLog',          h: 14, m: 45, dur: 60 },
+      { app: 'Terminal',           title: 'git commit -m "feat: auth"',   h: 15, m: 45, dur: 5  },
+      { app: 'Chrome',             title: 'GitHub PR #42 — CareerLog',    h: 15, m: 50, dur: 20, memo: 'PR 리뷰 요청' },
+      { app: 'Slack',              title: '# code-review',               h: 16, m: 10, dur: 15 },
+      { app: 'Visual Studio Code', title: 'auth.ts — 리뷰 반영',          h: 16, m: 25, dur: 45 },
+      { app: 'Terminal',           title: 'git push origin feature/auth', h: 17, m: 10, dur: 5  },
+      { app: 'Notion',             title: '작업 완료 체크리스트',           h: 17, m: 15, dur: 15, memo: '오늘 작업 정리 완료' },
+    ];
+
+    let actId = nextId(activities);
+    const newActs = rawActs.map(r => {
+      const startedAt = base(r.h, r.m);
+      const endedAt   = new Date(new Date(startedAt).getTime() + r.dur * 60000).toISOString();
+      return {
+        id:           actId++,
+        session_id:   sessionId,
+        app_name:     r.app,
+        window_title: r.title,
+        started_at:   startedAt,
+        ended_at:     endedAt,
+        duration_sec: r.dur * 60,
+        memo:         r.memo || null,
+        is_sample:    true,
+      };
+    });
+    activities.push(...newActs);
+
+    const recId = nextId(records);
+    records.push({
+      id:          recId,
+      session_id:  sessionId,
+      date:        yesterday.toISOString().split('T')[0],
+      content:     '• Google/카카오 소셜 로그인 기능 신규 개발 (React + TypeScript)\n• OAuth 2.0 플로우 설계 및 auth 모듈 구현, 단위 테스트 작성\n• 로그인 UI 컴포넌트 개발 및 Figma 디자인 반영\n• PR 코드 리뷰 반영 후 feature 브랜치 병합 완료',
+      star: {
+        situation: '사용자 인증 기능이 없어 이탈률이 높은 상황에서 소셜 로그인 도입을 담당하게 됨',
+        task:      'Google/카카오 OAuth 2.0 기반 소셜 로그인 기능을 1일 내 완성 및 PR 제출',
+        action:    'MDN 문서와 Google Sign-In SDK를 참고해 auth.ts 모듈 설계 후 React 컴포넌트와 연동. 단위 테스트 작성 후 Figma 디자인을 LoginButton.tsx에 구현하고 Notion 스펙 문서 업데이트',
+        result:    'PR #42 코드 리뷰 1회 반영 후 feature/auth 브랜치 병합 완료. 소셜 로그인 전환율 +23% 기대',
+        skills:    ['React', 'TypeScript', 'OAuth 2.0', 'Google Sign-In', 'Jest'],
+        metrics_detected: ['+23%'],
+        bullets: [
+          '• Google/카카오 OAuth 2.0 소셜 로그인 기능 신규 개발 (React + TypeScript)',
+          '• auth.ts 모듈 설계 및 단위 테스트 작성, PR 코드 리뷰 1회 반영 후 병합',
+          '• Figma 디자인 기반 LoginButton 컴포넌트 구현 및 Notion 스펙 문서 업데이트',
+          '• 소셜 로그인 전환율 +23% 개선 기대 효과',
+        ],
+      },
+      template:    'star',
+      raw_timeline: newActs,
+      created_at:  new Date().toISOString(),
+      is_sample:   true,
+    });
+
+    writeJson('sessions.json',       sessions);
+    writeJson('activities.json',     activities);
+    writeJson('career_records.json', records);
+    return { sessionId, recordId: recId };
+  },
+
+  // ── Streak ──────────────────────────────────────────────
+  getStreak() {
+    const records = readJson('career_records.json');
+    const sessions = readJson('sessions.json');
+
+    // 기록이 있는 날짜들
+    const activeDates = new Set([
+      ...records.map(r => r.date),
+      ...sessions.filter(s => s.ended_at).map(s => s.date),
+    ]);
+
+    const sortedDates = [...activeDates].sort().reverse();
+    if (!sortedDates.length) return { current: 0, longest: 0, dates: [] };
+
+    // 최근 7일 dots용
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      last7.push({ date: dateStr, done: activeDates.has(dateStr) });
+    }
+
+    // 현재 연속 streak 계산
+    let current = 0;
+    const today = new Date().toISOString().split('T')[0];
+    let check = today;
+    while (activeDates.has(check)) {
+      current++;
+      const d = new Date(check);
+      d.setDate(d.getDate() - 1);
+      check = d.toISOString().split('T')[0];
+    }
+    // 어제부터 시작하는 streak도 현재 streak으로 인정
+    if (current === 0) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      check = yesterday.toISOString().split('T')[0];
+      while (activeDates.has(check)) {
+        current++;
+        const d = new Date(check);
+        d.setDate(d.getDate() - 1);
+        check = d.toISOString().split('T')[0];
+      }
+    }
+
+    return { current, dates: last7 };
+  },
+
+  // ── Export / Import ────────────────────────────────────
+  exportAll() {
+    return {
+      sessions: readJson('sessions.json'),
+      activities: readJson('activities.json'),
+      career_records: readJson('career_records.json'),
+    };
+  },
+
+  importAll(data) {
+    if (data.sessions) {
+      const existing = readJson('sessions.json');
+      const merged = mergById(existing, data.sessions);
+      writeJson('sessions.json', merged);
+    }
+    if (data.activities) {
+      const existing = readJson('activities.json');
+      const merged = mergById(existing, data.activities);
+      writeJson('activities.json', merged);
+    }
+    if (data.career_records) {
+      const existing = readJson('career_records.json');
+      const merged = mergById(existing, data.career_records);
+      writeJson('career_records.json', merged);
+    }
+  },
 };
+
+function mergById(existing, incoming) {
+  const map = new Map(existing.map(x => [x.id, x]));
+  for (const item of incoming) map.set(item.id, item);
+  return [...map.values()].sort((a, b) => a.id - b.id);
+}
+
+// app_settings.json 읽기 (DB 레이어에서도 blacklist 참조 필요)
+function readAppSettings() {
+  try {
+    const p = path.join(getDataDir(), 'app_settings.json');
+    if (!fs.existsSync(p)) return { blacklist: [] };
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return { blacklist: [] };
+  }
+}
 
 function mergeShortActivities(activities) {
   if (!activities.length) return [];

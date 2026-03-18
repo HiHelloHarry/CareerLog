@@ -76,3 +76,14 @@ body {
   from { transform: scale(.4); opacity: 0; }
   to   { transform: scale(1);  opacity: 1; }
 }
+
+/* confetti fall */
+@keyframes cpFall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Home from './components/Home'
 import Timeline from './components/Timeline'
 import CareerResult from './components/CareerResult'
 import Settings from './components/Settings'
+import Done from './components/Done'
+import Onboarding from './components/Onboarding'
+import IdleDialog from './components/IdleDialog'
+import TaggingSession from './components/TaggingSession'
 
 const NAV = [
   { id: 'home',     icon: '⊙', tip: '홈' },
@@ -12,37 +16,77 @@ const NAV = [
 ]
 
 export default function App() {
-  const [view, setView] = useState('home')
+  const [view, setView] = useState('loading')
   const [isTracking, setIsTracking] = useState(false)
   const [sessionId, setSessionId] = useState(null)
   const [session, setSession] = useState(null)
   const [timeline, setTimeline] = useState([])
   const [careerContent, setCareerContent] = useState(null)
+  const [careerStar, setCareerStar] = useState(null)
   const [careerRecords, setCareerRecords] = useState([])
+  const [sessions, setSessions] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [canGenerate, setCanGenerate] = useState(false)
   const [error, setError] = useState(null)
+  const [idleInfo, setIdleInfo] = useState(null)   // { idleMinutes, idleStart }
+  const [showTagging, setShowTagging] = useState(false)
+
+  // useRef로 sessionId 최신값 항상 유지 (onNavigate 등 클로저에서 사용)
+  const sessionIdRef = useRef(null)
+  useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
 
   useEffect(() => {
-    window.careerlog.hasApiKey().then(has => setCanGenerate(has))
+    async function init() {
+      try {
+        const [settings, hasKey, status] = await Promise.all([
+          window.careerlog.getAppSettings(),
+          window.careerlog.hasApiKey(),
+          window.careerlog.getStatus(),
+        ])
+        setCanGenerate(true) // 백엔드 무료 크레딧 제공으로 항상 생성 가능
+        void hasKey // 자체 API 키 여부는 Settings에서만 표시
 
-    window.careerlog.getStatus().then(async ({ isTracking, sessionId }) => {
-      setIsTracking(isTracking)
-      setSessionId(sessionId)
-      if (sessionId) {
-        const lastSession = await window.careerlog.getLastSession()
-        setSession(lastSession)
-        if (!isTracking) {
-          await loadTimeline(sessionId)
-          setView('timeline')
+        // 온보딩 체크
+        if (settings.first_launch && !settings.onboarding_completed) {
+          setView('onboarding')
+          return
+        }
+
+        const { isTracking, sessionId } = status
+        setIsTracking(isTracking)
+        setSessionId(sessionId)
+        if (sessionId) {
+          const lastSession = await window.careerlog.getLastSession()
+          setSession(lastSession)
+          if (!isTracking) {
+            await loadTimeline(sessionId)
+            setView('timeline')
+            return
+          }
+        }
+        setView('home')
+      } catch (err) {
+        console.error('[init error]', err)
+        setView('home')
+      }
+    }
+    init()
+
+    window.careerlog.onNavigate(async (v) => {
+      setView(v)
+      if (v === 'timeline') {
+        const sid = sessionIdRef.current
+        if (sid) {
+          await loadTimeline(sid)
+          const settings = await window.careerlog.getAppSettings()
+          setShowTagging(!settings.skip_tagging)
         }
       }
+      if (v === 'career') loadCareerRecords()
     })
 
-    window.careerlog.onNavigate((v) => {
-      setView(v)
-      if (v === 'timeline' && sessionId) loadTimeline(sessionId)
-      if (v === 'career') loadCareerRecords()
+    window.careerlog.onIdleReturned((data) => {
+      setIdleInfo(data)
     })
 
     window.careerlog.onTrackingStatus(async ({ isTracking, sessionId }) => {
@@ -58,12 +102,17 @@ export default function App() {
   async function loadTimeline(sid) {
     const t = await window.careerlog.getTimeline(sid)
     setTimeline(t)
+    const allSessions = await window.careerlog.getSessions()
+    setSessions(allSessions)
   }
 
   async function loadCareerRecords() {
     const records = await window.careerlog.getCareerRecords()
     setCareerRecords(records)
   }
+
+  // 경력 기록이 없는 완료 세션 수 (타임라인 nav 배지용)
+  const unrecordedCount = sessions.filter(s => !s.has_career_record).length
 
   async function handleStart(project = '') {
     const res = await window.careerlog.startTracking(project)
@@ -75,11 +124,17 @@ export default function App() {
 
   async function handleStop() {
     setError(null)
+    const sid = sessionId  // 클로저에서 현재 sessionId 캡처
     await window.careerlog.stopTracking()
     setIsTracking(false)
-    if (sessionId) {
-      await new Promise(r => setTimeout(r, 150))
-      await loadTimeline(sessionId)
+    // stopTracking()이 navigate='timeline' 이벤트를 보냄
+    // onNavigate 핸들러가 loadTimeline + setShowTagging + setView를 처리
+    // UI 버튼 종료 시에도 직접 처리 (이벤트 누락 방지)
+    if (sid) {
+      await new Promise(r => setTimeout(r, 200))
+      await loadTimeline(sid)
+      const settings = await window.careerlog.getAppSettings()
+      setShowTagging(!settings.skip_tagging)
     }
     setView('timeline')
   }
@@ -89,27 +144,33 @@ export default function App() {
     setTimeline(prev => prev.map(a => a.id === activityId ? { ...a, memo } : a))
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(template = 'star') {
     if (!sessionId) return
-    const hasKey = await window.careerlog.hasApiKey()
-    if (!hasKey) {
-      setError('API 키가 설정되지 않았습니다.')
-      setView('settings')
-      return
-    }
     setIsGenerating(true)
     setError(null)
-    const result = await window.careerlog.generateCareerRecord(sessionId)
+    const result = await window.careerlog.generateCareerRecord(sessionId, template)
     setIsGenerating(false)
     if (result.error) { setError(result.error); return }
     setCareerContent(result.content)
+    setCareerStar(result.star || null)
     await loadCareerRecords()
-    setView('career')
+    setView('done')
   }
 
   async function handleNavigateCareer() {
     await loadCareerRecords()
     setView('career')
+  }
+
+  async function handleIdleDismiss(action, idleStart) {
+    if (action === 'working') {
+      await window.careerlog.restoreIdleTime(idleStart)
+    }
+    setIdleInfo(null)
+  }
+
+  function handleTaggingComplete() {
+    setShowTagging(false)
   }
 
   async function refreshApiKeyState() {
@@ -123,56 +184,99 @@ export default function App() {
     setView(id)
   }
 
+  // 온보딩 완료 처리
+  async function handleOnboardingComplete(action, sampleSessionId) {
+    if (action === 'sample' && sampleSessionId) {
+      setSessionId(sampleSessionId)
+      const s = await window.careerlog.getLastSession()
+      setSession(s)
+      await loadTimeline(sampleSessionId)
+      await loadCareerRecords()
+      setView('career')
+      return
+    }
+    setView('home')
+  }
+
+  const showNav = !['loading', 'onboarding', 'done'].includes(view)
+
+  if (view === 'loading') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <div style={{ color: 'var(--ink3)', fontSize: 13 }}>로딩 중...</div>
+      </div>
+    )
+  }
+
+  if (view === 'onboarding') {
+    return <Onboarding onComplete={handleOnboardingComplete} />
+  }
+
+  if (view === 'done') {
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+        <Done
+          star={careerStar}
+          content={careerContent}
+          onViewRecord={() => { handleNavigateCareer() }}
+          onHome={() => setView('home')}
+          onAddMore={() => setView('timeline')}
+        />
+      </div>
+    )
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+      {idleInfo && (
+        <IdleDialog
+          idleMinutes={idleInfo.idleMinutes}
+          idleStart={idleInfo.idleStart}
+          onDismiss={handleIdleDismiss}
+        />
+      )}
 
       {/* ── Left Rail ── */}
-      <aside style={{
-        width: 58, minWidth: 58, background: 'var(--bg2)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '14px 0 16px', zIndex: 50,
-      }}>
-        {/* Logo */}
-        <div
-          onClick={() => setView('home')}
-          style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: 'var(--a)', color: '#000',
-            fontFamily: "'DM Serif Display', serif", fontSize: 16, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: 24, cursor: 'pointer', flexShrink: 0,
-          }}
-        >C</div>
+      {showNav && (
+        <aside style={{
+          width: 58, minWidth: 58, background: 'var(--bg2)',
+          borderRight: '1px solid var(--border)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '14px 0 16px', zIndex: 50,
+        }}>
+          <div
+            onClick={() => setView('home')}
+            style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'var(--a)', color: '#000',
+              fontFamily: "'DM Serif Display', serif", fontSize: 16, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 24, cursor: 'pointer',
+            }}
+          >C</div>
 
-        {/* Nav items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, width: '100%', padding: '0 7px' }}>
-          {NAV.map(({ id, icon, tip }) => {
-            const active = view === id
-            return (
-              <RailItem key={id} icon={icon} tip={tip} active={active} onClick={() => handleNavClick(id)} />
-            )
-          })}
-        </nav>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, width: '100%', padding: '0 7px' }}>
+            {NAV.map(({ id, icon, tip }) => (
+              <RailItem key={id} icon={icon} tip={tip} active={view === id} onClick={() => handleNavClick(id)} badge={id === 'timeline' && unrecordedCount > 0 ? unrecordedCount : 0} />
+            ))}
+          </nav>
 
-        {/* tracking indicator dot */}
-        {isTracking && (
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--g)', marginBottom: 4,
-            boxShadow: '0 0 0 3px rgba(82,183,136,.2)',
-          }} />
-        )}
-      </aside>
+          {isTracking && (
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: 'var(--g)', marginBottom: 4,
+              boxShadow: '0 0 0 3px rgba(82,183,136,.2)',
+            }} />
+          )}
+        </aside>
+      )}
 
       {/* ── Main Content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         {error && (
           <div style={{
-            margin: '10px 16px 0',
-            padding: '10px 14px',
-            background: 'var(--r-dim)',
-            border: '1px solid rgba(224,112,112,.25)',
+            margin: '10px 16px 0', padding: '10px 14px',
+            background: 'var(--r-dim)', border: '1px solid rgba(224,112,112,.25)',
             borderRadius: 10, color: 'var(--r)',
             fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
@@ -193,15 +297,28 @@ export default function App() {
               onOpenSettings={() => setView('settings')}
             />
           )}
-          {view === 'timeline' && (
+          {view === 'timeline' && showTagging && timeline.length > 0 && (
+            <TaggingSession
+              timeline={timeline}
+              onComplete={handleTaggingComplete}
+            />
+          )}
+          {view === 'timeline' && !showTagging && (
             <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 20px 24px' }}>
               <Timeline
                 timeline={timeline}
                 session={session}
+                sessions={sessions}
                 canGenerate={canGenerate}
                 onSaveMemo={handleSaveMemo}
                 onGenerate={handleGenerate}
                 isGenerating={isGenerating}
+                onSelectSession={async (sid) => {
+                  setSessionId(sid)
+                  const s = await window.careerlog.getSession(sid)
+                  setSession(s)
+                  await loadTimeline(sid)
+                }}
               />
             </div>
           )}
@@ -209,6 +326,7 @@ export default function App() {
             <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 20px 24px' }}>
               <CareerResult
                 content={careerContent}
+                star={careerStar}
                 records={careerRecords}
                 onBack={() => setView('timeline')}
               />
@@ -225,7 +343,7 @@ export default function App() {
   )
 }
 
-function RailItem({ icon, tip, active, onClick }) {
+function RailItem({ icon, tip, active, onClick, badge = 0 }) {
   const [hover, setHover] = useState(false)
   return (
     <button
@@ -237,8 +355,7 @@ function RailItem({ icon, tip, active, onClick }) {
         position: 'relative',
         width: 44, height: 44, borderRadius: 10,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 18, cursor: 'pointer',
-        border: 'none',
+        fontSize: 18, cursor: 'pointer', border: 'none',
         background: active ? 'var(--a-dim)' : hover ? 'var(--bg3)' : 'transparent',
         color: active ? 'var(--a)' : hover ? 'var(--ink)' : 'var(--ink3)',
         transition: 'all .15s',
@@ -251,6 +368,15 @@ function RailItem({ icon, tip, active, onClick }) {
         }} />
       )}
       {icon}
+      {badge > 0 && (
+        <span style={{
+          position: 'absolute', top: 6, right: 6,
+          minWidth: 14, height: 14, borderRadius: 7, padding: '0 3px',
+          background: 'var(--a)', color: '#000',
+          fontSize: 9, fontWeight: 800, lineHeight: '14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{badge > 9 ? '9+' : badge}</span>
+      )}
       {hover && (
         <span style={{
           position: 'absolute', left: 'calc(100% + 10px)', top: '50%', transform: 'translateY(-50%)',
