@@ -25,21 +25,11 @@ export default function Timeline({ timeline, session, sessions = [], canGenerate
     return [...map.values()].sort((a, b) => b.totalSec - a.totalSec)
   }, [timeline])
 
-  if (!timeline.length) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)' }}>
-        <div style={{ fontSize: 40, marginBottom: 14 }}>▤</div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink2)' }}>기록된 업무가 없습니다</p>
-        <p style={{ fontSize: 12.5, marginTop: 6 }}>홈에서 업무를 시작하세요</p>
-      </div>
-    )
-  }
-
   const totalSec = timeline.reduce((sum, a) => sum + (a.duration_sec || 0), 0)
   const sessionDate = session?.date || timeline[0]?.started_at?.split('T')[0] || ''
   const dateLabel = sessionDate
     ? new Date(sessionDate + 'T12:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
-    : ''
+    : '날짜 미상'
 
   function handleGenerateClick() {
     if (!canGenerate) { onGenerate('star'); return }
@@ -165,38 +155,49 @@ export default function Timeline({ timeline, session, sessions = [], canGenerate
         </div>
       )}
 
-      {/* 뷰 모드 토글 */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        {[['group', '⊞ 앱별'], ['list', '≡ 시간순']].map(([v, label]) => (
-          <button key={v} onClick={() => setViewMode(v)} style={{
-            padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-            border: 'none', cursor: 'pointer',
-            background: viewMode === v ? 'var(--a-dim)' : 'var(--bg3)',
-            color: viewMode === v ? 'var(--a)' : 'var(--ink3)',
-            transition: 'all .15s',
-          }}>{label}</button>
-        ))}
-      </div>
-
-      {/* 그룹 뷰 */}
-      {viewMode === 'group' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {grouped.map(g => (
-            <GroupItem key={g.app_name} group={g} onSaveMemo={onSaveMemo} />
-          ))}
+      {/* 활동 없을 때 빈 상태 */}
+      {!timeline.length ? (
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>▤</div>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>이 날은 기록된 업무가 없습니다</p>
+          <p style={{ fontSize: 12, marginTop: 6 }}>다른 날짜를 선택하거나 홈에서 업무를 시작하세요</p>
         </div>
-      )}
-
-      {/* 시간순 뷰 */}
-      {viewMode === 'list' && (
-        <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 19, top: 6, bottom: 6, width: 1, background: 'var(--border)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {timeline.map((activity, idx) => (
-              <ActivityItem key={activity.id || idx} activity={activity} onSaveMemo={onSaveMemo} />
+      ) : (
+        <>
+          {/* 뷰 모드 토글 */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {[['group', '⊞ 앱별'], ['list', '≡ 시간순']].map(([v, label]) => (
+              <button key={v} onClick={() => setViewMode(v)} style={{
+                padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                border: 'none', cursor: 'pointer',
+                background: viewMode === v ? 'var(--a-dim)' : 'var(--bg3)',
+                color: viewMode === v ? 'var(--a)' : 'var(--ink3)',
+                transition: 'all .15s',
+              }}>{label}</button>
             ))}
           </div>
-        </div>
+
+          {/* 그룹 뷰 */}
+          {viewMode === 'group' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {grouped.map(g => (
+                <GroupItem key={g.app_name} group={g} onSaveMemo={onSaveMemo} />
+              ))}
+            </div>
+          )}
+
+          {/* 시간순 뷰 */}
+          {viewMode === 'list' && (
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 19, top: 6, bottom: 6, width: 1, background: 'var(--border)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {timeline.map((activity, idx) => (
+                  <ActivityItem key={activity.id || idx} activity={activity} onSaveMemo={onSaveMemo} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* 템플릿 선택 모달 */}
