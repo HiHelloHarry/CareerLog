@@ -97,6 +97,9 @@ async function poll() {
     const appName     = win.owner?.name || 'Unknown';
     const windowTitle = win.title || '';
 
+    // CareerLog 자신은 추적 제외
+    if (appName.toLowerCase() === 'careerlog') return;
+
     const isSame = current &&
       current.appName     === appName &&
       current.windowTitle === windowTitle;

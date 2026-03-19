@@ -79,7 +79,8 @@ export const db = {
     const blacklist = (settings.blacklist || []).map(a => a.toLowerCase());
     const activities = readJson('activities.json')
       .filter(a => a.session_id === sessionId)
-      .filter(a => !blacklist.includes((a.app_name || '').toLowerCase()));
+      .filter(a => !blacklist.includes((a.app_name || '').toLowerCase()))
+      .filter(a => (a.app_name || '').toLowerCase() !== 'careerlog');
     activities.sort((a, b) => a.started_at.localeCompare(b.started_at));
     return mergeShortActivities(activities);
   },
