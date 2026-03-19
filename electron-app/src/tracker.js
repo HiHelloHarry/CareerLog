@@ -1,7 +1,8 @@
 import { powerMonitor } from 'electron';
+import { execFile } from 'node:child_process';
 import { db } from './database.js';
 
-const POLL_INTERVAL  = 10 * 1000;  // 10초 (기존 30초 → 정밀도 향상)
+const POLL_INTERVAL  = 10 * 1000;  // 10초
 const IDLE_THRESHOLD = 5 * 60;     // 5분 (초 단위)
 
 let intervalId = null;
@@ -9,9 +10,34 @@ let sessionId  = null;
 let current    = null;   // { appName, windowTitle, startedAt }
 let lastActivity = null;
 let onActivityChangeCb = null;
-let onIdleCb  = null;    // idle 감지 콜백 → main.js로 전달
+let onIdleCb  = null;
 let isIdle    = false;
-let idleStart = null;    // idle 시작 시각
+let idleStart = null;
+
+// PowerShell UIAutomation으로 포그라운드 창 정보 조회 (~400ms)
+const PS_CMD = `$ErrorActionPreference='SilentlyContinue'
+Add-Type -AssemblyName UIAutomationClient
+$el = [System.Windows.Automation.AutomationElement]::FocusedElement
+if ($el) {
+  $pid2 = $el.Current.ProcessId
+  $p = Get-Process -Id $pid2 -ErrorAction SilentlyContinue
+  if ($p) {
+    $n = $p.Name -replace '"', '\\"'
+    $t = $p.MainWindowTitle -replace '"', '\\"'
+    Write-Output ('{"owner":{"name":"' + $n + '"},"title":"' + $t + '"}')
+  } else { Write-Output 'null' }
+} else { Write-Output 'null' }`;
+
+function queryActiveWindow() {
+  return new Promise((resolve) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', PS_CMD],
+      { windowsHide: true, timeout: 8000 },
+      (err, stdout) => {
+        try { resolve(JSON.parse(stdout.trim())); } catch { resolve(null); }
+      }
+    );
+  });
+}
 
 export const tracker = {
   start(sid, onActivityChange, onIdle) {
@@ -28,7 +54,6 @@ export const tracker = {
 
   async stop() {
     if (intervalId) { clearInterval(intervalId); intervalId = null; }
-    // poll()이 비동기로 실행 중일 수 있으므로 충분히 기다린 후 flush
     await new Promise(r => setTimeout(r, 100));
     if (current && !isIdle) flushActivity();
     sessionId = null;
@@ -49,14 +74,12 @@ async function poll() {
     const idleSec = powerMonitor.getSystemIdleTime();
 
     if (idleSec >= IDLE_THRESHOLD && !isIdle) {
-      // idle 시작
       isIdle    = true;
       idleStart = new Date(Date.now() - idleSec * 1000).toISOString();
-      if (current) flushActivity(); // idle 전까지의 활동 저장
+      if (current) flushActivity();
     }
 
     if (idleSec < IDLE_THRESHOLD && isIdle) {
-      // idle 복귀 — 얼마나 비웠는지 알림
       isIdle = false;
       const idleMinutes = Math.round((Date.now() - new Date(idleStart).getTime()) / 60000);
       if (onIdleCb && idleMinutes >= 1) {
@@ -65,11 +88,10 @@ async function poll() {
       idleStart = null;
     }
 
-    if (isIdle) return; // idle 중엔 활동 기록 안 함
+    if (isIdle) return;
 
     // ── 활동 감지 ───────────────────────────────────────
-    const { activeWindow } = await import('active-win');
-    const win = await activeWindow();
+    const win = await queryActiveWindow();
     if (!win) return;
 
     const appName     = win.owner?.name || 'Unknown';
