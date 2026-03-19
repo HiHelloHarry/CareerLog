@@ -130,14 +130,15 @@ export default function App() {
 
   async function handleStop() {
     setError(null)
-    const sid = sessionId  // 클로저에서 현재 sessionId 캡처
     await window.careerlog.stopTracking()
     setIsTracking(false)
-    // stopTracking()이 navigate='timeline' 이벤트를 보냄
-    // onNavigate 핸들러가 loadTimeline + setShowTagging + setView를 처리
-    // UI 버튼 종료 시에도 직접 처리 (이벤트 누락 방지)
+    await new Promise(r => setTimeout(r, 200))
+    // React state 대신 DB에서 직접 마지막 세션 조회 (state 불일치 방지)
+    const lastSession = await window.careerlog.getLastSession()
+    const sid = lastSession?.id
     if (sid) {
-      await new Promise(r => setTimeout(r, 200))
+      setSessionId(sid)
+      setSession(lastSession)
       await loadTimeline(sid)
       const settings = await window.careerlog.getAppSettings()
       setShowTagging(!settings.skip_tagging)
