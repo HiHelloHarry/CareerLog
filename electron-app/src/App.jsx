@@ -75,7 +75,13 @@ export default function App() {
     window.careerlog.onNavigate(async (v) => {
       setView(v)
       if (v === 'timeline') {
-        const sid = sessionIdRef.current
+        // sessionIdRef가 아직 null일 경우 main process에서 직접 조회
+        let sid = sessionIdRef.current
+        if (!sid) {
+          const status = await window.careerlog.getStatus()
+          sid = status.sessionId
+          if (sid) setSessionId(sid)
+        }
         if (sid) {
           await loadTimeline(sid)
           const settings = await window.careerlog.getAppSettings()
@@ -303,7 +309,7 @@ export default function App() {
               onComplete={handleTaggingComplete}
             />
           )}
-          {view === 'timeline' && !showTagging && (
+          {view === 'timeline' && !(showTagging && timeline.length > 0) && (
             <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 20px 24px' }}>
               <Timeline
                 timeline={timeline}
