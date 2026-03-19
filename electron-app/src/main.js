@@ -126,12 +126,12 @@ function startTracking(project = '') {
   mainWindow?.webContents.send('tracking-status', { isTracking: true, sessionId: currentSessionId });
 }
 
-async function stopTracking() {
+async function stopTracking({ openWindow = true } = {}) {
   await tracker.stop();
   db.endSession();
   isTracking = false;
   updateTrayMenu();
-  openMainWindow('timeline');
+  if (openWindow) openMainWindow('timeline');
 }
 
 function startTrackingFromTray() {
@@ -217,7 +217,7 @@ function ensureDeviceId() {
 // ── IPC ──────────────────────────────────────────────────
 ipcMain.handle('get-status', () => ({ isTracking, sessionId: currentSessionId }));
 ipcMain.handle('start-tracking', (_, project = '') => { startTracking(project); return { isTracking: true, sessionId: currentSessionId }; });
-ipcMain.handle('stop-tracking', async () => { await stopTracking(); return { isTracking: false }; });
+ipcMain.handle('stop-tracking', async () => { await stopTracking({ openWindow: false }); return { isTracking: false }; });
 
 ipcMain.handle('get-timeline', (_, sessionId) => db?.getTimeline(sessionId) ?? []);
 ipcMain.handle('get-last-session', () => db?.getLastSession() ?? null);

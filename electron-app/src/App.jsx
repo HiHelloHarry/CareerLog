@@ -188,7 +188,24 @@ export default function App() {
   function handleNavClick(id) {
     setError(null)
     if (id === 'career') { handleNavigateCareer(); return }
+    if (id === 'timeline') { handleNavigateTimeline(); return }
     setView(id)
+  }
+
+  async function handleNavigateTimeline() {
+    setView('timeline')
+    // sessionId가 없으면 가장 최근 완료 세션 로드
+    let sid = sessionId
+    if (!sid) {
+      const allSessions = await window.careerlog.getSessions() // 최신순
+      if (allSessions.length > 0) {
+        sid = allSessions[0].id
+        setSessionId(sid)
+        const s = await window.careerlog.getSession(sid)
+        setSession(s)
+      }
+    }
+    if (sid) await loadTimeline(sid)
   }
 
   // 온보딩 완료 처리
