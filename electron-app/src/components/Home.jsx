@@ -71,7 +71,7 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
           }}>기록이 <em style={{ color: 'var(--g)', fontStyle: 'italic' }}>시작</em>됩니다</h3>
 
           <p style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 16 }}>
-            백그라운드에서 30초마다 활동을 자동 기록합니다
+            백그라운드에서 10초마다 활동을 자동 기록합니다
           </p>
 
           <div style={{
