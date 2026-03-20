@@ -7,12 +7,14 @@ import Done from './components/Done'
 import Onboarding from './components/Onboarding'
 import IdleDialog from './components/IdleDialog'
 import TaggingSession from './components/TaggingSession'
+import Dashboard from './components/Dashboard'
 
 const NAV = [
-  { id: 'home',     icon: '⊙', tip: '홈' },
-  { id: 'timeline', icon: '▤',  tip: '타임라인' },
-  { id: 'career',   icon: '✦',  tip: '경력 기록' },
-  { id: 'settings', icon: '⚙',  tip: '설정' },
+  { id: 'home',      icon: '⊙', tip: '홈' },
+  { id: 'timeline',  icon: '▤',  tip: '타임라인' },
+  { id: 'dashboard', icon: '◈',  tip: '대시보드' },
+  { id: 'career',    icon: '✦',  tip: '경력 기록' },
+  { id: 'settings',  icon: '⚙',  tip: '설정' },
 ]
 
 export default function App() {
@@ -196,12 +198,20 @@ export default function App() {
     setView(id)
   }
 
-  async function handleNavigateTimeline() {
+  async function handleNavigateTimeline(targetDate) {
     setView('timeline')
-    // sessionId가 없으면 가장 최근 완료 세션 로드
+    const allSessions = await window.careerlog.getSessions() // 최신순
     let sid = sessionId
-    if (!sid) {
-      const allSessions = await window.careerlog.getSessions() // 최신순
+    // 날짜가 지정된 경우 해당 날짜의 세션으로 이동
+    if (targetDate) {
+      const matched = allSessions.find(s => s.date === targetDate)
+      if (matched) {
+        sid = matched.id
+        setSessionId(sid)
+        const s = await window.careerlog.getSession(sid)
+        setSession(s)
+      }
+    } else if (!sid) {
       if (allSessions.length > 0) {
         sid = allSessions[0].id
         setSessionId(sid)
@@ -347,6 +357,14 @@ export default function App() {
                   setSession(s)
                   await loadTimeline(sid)
                 }}
+              />
+            </div>
+          )}
+          {view === 'dashboard' && (
+            <div style={{ height: '100%', overflowY: 'auto' }}>
+              <Dashboard
+                onGoCareer={handleNavigateCareer}
+                onGoTimeline={(date) => handleNavigateTimeline(date)}
               />
             </div>
           )}

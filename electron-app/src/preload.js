@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('careerlog', {
   getCareerRecords:     ()                       => ipcRenderer.invoke('get-career-records'),
   updateCareerRecord:   (id, content, starData)  => ipcRenderer.invoke('update-career-record', id, content, starData),
   getStreak:            ()                       => ipcRenderer.invoke('get-streak'),
+  getDashboardStats:    ()                       => ipcRenderer.invoke('get-dashboard-stats'),
   getCredits:           ()                       => ipcRenderer.invoke('get-credits'),
 
   // API 키 설정

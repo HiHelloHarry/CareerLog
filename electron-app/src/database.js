@@ -255,6 +255,110 @@ export const db = {
     return { sessionId, recordId: recId };
   },
 
+  // ── Dashboard Stats ─────────────────────────────────────
+  getDashboardStats() {
+    const sessions   = readJson('sessions.json');
+    const activities = readJson('activities.json');
+    const records    = readJson('career_records.json');
+    const settings   = readAppSettings();
+    const blacklist  = (settings.blacklist || []).map(a => a.toLowerCase());
+    const SYSTEM     = ['careerlog', 'explorer', 'svchost', 'dwm', 'taskhost', 'searchui', 'cortana', 'applicationframehost', 'shellexperiencehost'];
+
+    const isSystemApp = (name) => {
+      const n = (name || '').toLowerCase();
+      return !n || SYSTEM.includes(n) || blacklist.includes(n);
+    };
+
+    // 총 업무 일수 (활동 기록 있는 고유 날짜)
+    const workDaySet = new Set(activities.map(a => a.started_at?.split('T')[0]).filter(Boolean));
+    const totalWorkDays = workDaySet.size;
+
+    // 총 추적 시간
+    const totalSeconds = sessions.filter(s => s.ended_at).reduce((acc, s) => {
+      const dur = new Date(s.ended_at) - new Date(s.started_at);
+      return acc + (dur > 0 ? dur / 1000 : 0);
+    }, 0);
+    const totalHours = Math.round(totalSeconds / 3600 * 10) / 10;
+
+    // 다룬 앱 수
+    const uniqueApps = new Set(activities.map(a => a.app_name).filter(a => !isSystemApp(a)));
+    const totalUniqueApps = uniqueApps.size;
+
+    // 총 경력 기록 수
+    const totalRecords = records.length;
+
+    // 이번 주 날짜 배열 (월~일, 한국 주 기준)
+    const now = new Date();
+    const dow = now.getDay(); // 0=일
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+
+    // 요일별 시간 (이번 주)
+    const weeklyHours = weekDates.map(date => {
+      const secs = activities
+        .filter(a => a.started_at?.startsWith(date))
+        .reduce((acc, a) => acc + (a.duration_sec || 0), 0);
+      return { date, hours: Math.round(secs / 3600 * 10) / 10 };
+    });
+    const weekTotalHours = Math.round(weeklyHours.reduce((acc, d) => acc + d.hours, 0) * 10) / 10;
+
+    // 이번 주 가장 많이 쓴 앱
+    const weekAppTime = {};
+    activities.filter(a => weekDates.includes(a.started_at?.split('T')[0]) && !isSystemApp(a.app_name))
+      .forEach(a => { weekAppTime[a.app_name] = (weekAppTime[a.app_name] || 0) + (a.duration_sec || 0); });
+    const topWeekEntry = Object.entries(weekAppTime).sort((a, b) => b[1] - a[1])[0];
+    const topWeekApp = topWeekEntry ? { name: topWeekEntry[0], hours: Math.round(topWeekEntry[1] / 3600 * 10) / 10 } : null;
+
+    // 히트맵: 최근 84일
+    const heatmap = Array.from({ length: 84 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (83 - i));
+      const date = d.toISOString().split('T')[0];
+      const secs = activities.filter(a => a.started_at?.startsWith(date)).reduce((acc, a) => acc + (a.duration_sec || 0), 0);
+      return { date, hours: Math.round(secs / 3600 * 10) / 10 };
+    });
+
+    // 최근 경력기록 2개
+    const recentRecords = [...records].reverse().slice(0, 2).map(r => {
+      const s = sessions.find(s => s.id === r.session_id);
+      return {
+        id: r.id,
+        created_at: r.created_at,
+        date: r.date,
+        project: s?.project || '',
+        firstBullet: r.star?.bullets?.[0] || r.content?.split('\n')[0] || '',
+      };
+    });
+
+    // 앱 TOP 3 (이번 주 / 이번 달 / 전체)
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const appBuckets = { week: {}, month: {}, all: {} };
+    activities.filter(a => !isSystemApp(a.app_name)).forEach(a => {
+      const date = a.started_at?.split('T')[0] || '';
+      const dur = a.duration_sec || 0;
+      appBuckets.all[a.app_name]   = (appBuckets.all[a.app_name]   || 0) + dur;
+      if (date >= monthStart)   appBuckets.month[a.app_name] = (appBuckets.month[a.app_name] || 0) + dur;
+      if (weekDates.includes(date)) appBuckets.week[a.app_name]  = (appBuckets.week[a.app_name]  || 0) + dur;
+    });
+    const toTop3 = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([name, secs]) => ({ name, hours: Math.round(secs / 3600 * 10) / 10 }));
+
+    return {
+      totalWorkDays, totalHours, totalRecords, totalUniqueApps,
+      weeklyHours, weekTotalHours, topWeekApp, weekDates,
+      heatmap, recentRecords,
+      topApps: { week: toTop3(appBuckets.week), month: toTop3(appBuckets.month), all: toTop3(appBuckets.all) },
+      todayDate: now.toISOString().split('T')[0],
+    };
+  },
+
   // ── Streak ──────────────────────────────────────────────
   getStreak() {
     const records = readJson('career_records.json');

@@ -404,6 +404,7 @@ ipcMain.handle('import-data', async () => {
 });
 
 ipcMain.handle('get-streak', () => db?.getStreak() ?? { current: 0, dates: [] });
+ipcMain.handle('get-dashboard-stats', () => db?.getDashboardStats() ?? null);
 
 // idle 시간 복원 (사용자가 "업무 중이었음" 선택 시)
 ipcMain.handle('restore-idle-time', (_, idleStart) => {
