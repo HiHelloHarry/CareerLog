@@ -20,7 +20,7 @@ const S = {
 
 export default function Home({ isTracking, canGenerate, sessionStartedAt, onStart, onStop, onOpenTimeline, onOpenSettings }) {
   const [elapsed, setElapsed] = useState(0)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [toast, setToast] = useState(null)   // { lines: string[], key: number }
   const [project, setProject] = useState('')
 
   useEffect(() => {
@@ -43,68 +43,24 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  async function handleStart() {
-    await onStart(project.trim())
-    setShowConfirmation(true)
+  function showToast(lines) {
+    setToast({ lines, key: Date.now() })
+    setTimeout(() => setToast(null), 3200)
   }
 
-  // ── 시작 확인 오버레이 ──
-  if (showConfirmation) {
-    return (
-      <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
-        <div style={{
-          background: 'var(--bg2)', border: '1px solid var(--border2)',
-          borderRadius: 20, padding: '32px 28px', textAlign: 'center', maxWidth: 340,
-          boxShadow: 'var(--shadow)',
-        }} className="fade-up">
-          <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            background: 'var(--g-dim)', border: '2px solid rgba(82,183,136,.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 18px', fontSize: 24,
-            animation: 'popIn .5s cubic-bezier(.175,.885,.32,1.275)',
-          }}>✓</div>
+  async function handleStart() {
+    await onStart(project.trim())
+    showToast(['기록이 시작되었습니다.', '오늘 하루도 잘 부탁드립니다.'])
+  }
 
-          <h3 style={{
-            fontFamily: "'DM Serif Display', serif", fontSize: 22,
-            color: 'var(--ink)', marginBottom: 8,
-          }}>기록이 <em style={{ color: 'var(--g)', fontStyle: 'italic' }}>시작</em>됩니다</h3>
-
-          <p style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 16 }}>
-            백그라운드에서 10초마다 활동을 자동 기록합니다
-          </p>
-
-          <div style={{
-            background: 'var(--bg3)', border: '1px solid var(--border)',
-            borderRadius: 10, padding: '10px 14px',
-            fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, textAlign: 'left', marginBottom: 20,
-          }}>
-            💡 종료하려면 <strong style={{ color: 'var(--ink2)' }}>시스템 트레이</strong>의 CareerLog 아이콘을<br />
-            우클릭 → <strong style={{ color: 'var(--ink2)' }}>「업무 종료」</strong> 또는 이 창을 다시 열어 종료하세요
-          </div>
-
-          <button
-            onClick={() => window.close()}
-            style={{
-              width: '100%', padding: '12px 0',
-              background: 'var(--a)', color: '#000',
-              border: 'none', borderRadius: 12,
-              fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              fontFamily: "'Noto Sans KR', sans-serif",
-              transition: 'all .15s',
-            }}
-            onMouseOver={e => { e.currentTarget.style.background = '#e8bc5a' }}
-            onMouseOut={e => { e.currentTarget.style.background = 'var(--a)' }}
-          >
-            확인, 창 닫기
-          </button>
-        </div>
-      </div>
-    )
+  async function handleStop() {
+    showToast(['오늘도 고생하셨습니다.'])
+    await new Promise(r => setTimeout(r, 1500))
+    onStop()
   }
 
   return (
-    <div style={S.wrap}>
+    <div style={{ ...S.wrap, position: 'relative' }}>
       {/* API 키 없을 때 배너 */}
       {!canGenerate && !isTracking && (
         <button
@@ -192,7 +148,7 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
           </div>
 
           <button
-            onClick={onStop}
+            onClick={handleStop}
             style={{
               width: 240, padding: '14px 0',
               background: 'var(--bg3)', color: 'var(--ink)',
@@ -208,6 +164,29 @@ export default function Home({ isTracking, canGenerate, sessionStartedAt, onStar
             <span>⏹</span>
             업무 종료
           </button>
+        </div>
+      )}
+
+      {/* 토스트 */}
+      {toast && (
+        <div key={toast.key} style={{
+          position: 'fixed', bottom: 28, left: '50%',
+          background: 'var(--bg2)', border: '1px solid var(--border2)',
+          borderRadius: 14, padding: '14px 24px',
+          textAlign: 'center', boxShadow: 'var(--shadow)',
+          animation: 'toastLifecycle 3s ease forwards',
+          pointerEvents: 'none', zIndex: 999,
+          minWidth: 220,
+        }}>
+          {toast.lines.map((line, i) => (
+            <p key={i} style={{
+              margin: 0,
+              fontSize: i === 0 ? 14 : 12.5,
+              fontWeight: i === 0 ? 700 : 400,
+              color: i === 0 ? 'var(--ink)' : 'var(--ink3)',
+              marginTop: i > 0 ? 4 : 0,
+            }}>{line}</p>
+          ))}
         </div>
       )}
 

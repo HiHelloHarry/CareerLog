@@ -15,7 +15,9 @@ let isIdle    = false;
 let idleStart = null;
 
 // PowerShell UIAutomation으로 포그라운드 창 정보 조회 (~400ms)
-const PS_CMD = `$ErrorActionPreference='SilentlyContinue'
+const PS_CMD = `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8
+$OutputEncoding=[System.Text.Encoding]::UTF8
+$ErrorActionPreference='SilentlyContinue'
 Add-Type -AssemblyName UIAutomationClient
 $el = [System.Windows.Automation.AutomationElement]::FocusedElement
 if ($el) {
@@ -31,7 +33,7 @@ if ($el) {
 function queryActiveWindow() {
   return new Promise((resolve) => {
     execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', PS_CMD],
-      { windowsHide: true, timeout: 8000 },
+      { windowsHide: true, timeout: 8000, encoding: 'utf8' },
       (err, stdout) => {
         try { resolve(JSON.parse(stdout.trim())); } catch { resolve(null); }
       }

@@ -38,10 +38,11 @@ export default function App() {
   useEffect(() => {
     async function init() {
       try {
-        const [settings, hasKey, status] = await Promise.all([
+        const [settings, hasKey, status, lastSession] = await Promise.all([
           window.careerlog.getAppSettings(),
           window.careerlog.hasApiKey(),
           window.careerlog.getStatus(),
+          window.careerlog.getLastSession(),
         ])
         setCanGenerate(true) // 백엔드 무료 크레딧 제공으로 항상 생성 가능
         void hasKey // 자체 API 키 여부는 Settings에서만 표시
@@ -53,16 +54,14 @@ export default function App() {
         }
 
         const { isTracking, sessionId } = status
+        // session을 isTracking과 동시에 세팅 → Home이 sessionStartedAt 없이 렌더링되는 일 방지
         setIsTracking(isTracking)
         setSessionId(sessionId)
-        if (sessionId) {
-          const lastSession = await window.careerlog.getLastSession()
-          setSession(lastSession)
-          if (!isTracking) {
-            await loadTimeline(sessionId)
-            setView('timeline')
-            return
-          }
+        if (lastSession) setSession(lastSession)
+        if (sessionId && !isTracking) {
+          await loadTimeline(sessionId)
+          setView('timeline')
+          return
         }
         setView('home')
       } catch (err) {
@@ -74,6 +73,11 @@ export default function App() {
 
     window.careerlog.onNavigate(async (v) => {
       setView(v)
+      // 트레이에서 홈으로 복귀 시 세션 갱신 (타이머 started_at 보장)
+      if (v === 'home') {
+        const s = await window.careerlog.getLastSession()
+        if (s) setSession(s)
+      }
       if (v === 'timeline') {
         // sessionIdRef가 아직 null일 경우 main process에서 직접 조회
         let sid = sessionIdRef.current
