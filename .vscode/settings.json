@@ -1,0 +1,13 @@
+{
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/electron-app/out/**": true,
+    "**/electron-app/.vite/**": true,
+    "**/.git/**": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/electron-app/out": true,
+    "**/electron-app/.vite": true
+  }
+}

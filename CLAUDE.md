@@ -22,9 +22,11 @@ electron-app/src/
   components/
     Home.jsx / Timeline.jsx / CareerResult.jsx
     Settings.jsx / Onboarding.jsx / Done.jsx
-    IdleDialog.jsx / TaggingSession.jsx
+    IdleDialog.jsx / TaggingSession.jsx / Dashboard.jsx
 backend/
   server.js        Railway 배포용 Express 서버 (현재 미사용)
+docs/
+  dashboard-spec-v1.md  대시보드 기획서 (PD 리뷰 완료)
 ```
 
 ## 데이터 파일 (userData/data/ = C:\Users\<user>\AppData\Roaming\CareerLog\data\)
@@ -59,10 +61,12 @@ backend/
   - `npm run make` 후 `npx asar list out/.../app.asar | grep node_modules`로 확인
   - node_modules가 없으면 패키지는 런타임에 로드 불가 (외부 패키지 전략 필요)
 
-### 활동 감지: PowerShell UIAutomation (tracker.js)
+### 활동 감지: Win32 API (tracker.js)
 `active-win`은 네이티브 모듈이라 패키징된 asar에 포함되지 않아 런타임 실패.
-대신 `execFile('powershell', ...)` + `UIAutomationClient` 어셈블리로 포그라운드 창 감지.
-- 속도: 폴당 ~400ms (10초 간격이므로 무방)
+`execFile('powershell', ...)` + **Win32 GetForegroundWindow() API**로 포그라운드 창 감지.
+- `GetForegroundWindow()` → `GetWindowText()` → `GetWindowThreadProcessId()` 순서로 조회
+- `UIAutomationClient` + `MainWindowTitle` 방식은 앱 이름과 창 제목이 교차 오염되는 버그 있음
+  → KakaoTalk 활동에 VS Code 창 제목이 기록되는 문제 발생 (수정 완료)
 - `windowsHide: true` 필수 (PowerShell 창 플래시 방지)
 - CareerLog 자기 자신(`appName === 'careerlog'`)은 추적 제외
 
@@ -94,7 +98,7 @@ timeline이 비어있어도 헤더+날짜 피커는 항상 렌더링 (빈 상태
 `handleNavClick('timeline')` → `handleNavigateTimeline()` 호출.
 sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setView만 하면 히스토리 안 보임.
 
-## 구현된 기능 목록 (v0.2)
+## 구현된 기능 목록 (v0.3)
 - R1: 샘플 데이터 온보딩 체험 (Onboarding.jsx)
 - R2: 타임라인 앱별 그룹 뷰 + 시간순 토글 (Timeline.jsx)
 - R3: 직군/직급/기술스택 프로필 설정 + AI 프롬프트 주입 (Settings.jsx, ai.js)
@@ -104,6 +108,13 @@ sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setVi
 - R8: 태깅 건너뛰기 토글 (Settings.jsx)
 - R9: 클립보드 복사 (resume bullets / STAR / LinkedIn 형식) (CareerResult.jsx)
 - X 버튼 닫기 동작 선택 (트레이/완전종료/매번묻기) + Settings 연동
+- 업무 시작/종료 토스트 알림 (3초 fade-out) — Home.jsx
+- 커리어 대시보드 (Dashboard.jsx) — 이번 주 히어로 카드, 누적 통계, 12주 히트맵, 최근 경력 기록, 앱별 TOP 사용 도구
+  - database.js: getDashboardStats() 추가
+  - main.js: get-dashboard-stats IPC 핸들러 추가
+  - Nav에 대시보드 탭 추가 (타임라인 ↔ 경력기록 사이)
+  - 히트맵 셀 클릭 → 해당 날짜 타임라인으로 이동
+- tracker.js: Win32 API로 창 제목 감지 교체 (앱명·창제목 교차 오염 버그 수정)
 
 ## 빌드 & 배포 순서
 ```bash
@@ -112,11 +123,11 @@ powershell -Command "Get-Process | Where-Object { \$_.Path -like '*CareerLog*' }
 
 cd electron-app
 npm run make
-# Setup.exe를 루트에 복사
-cp "out/make/squirrel.windows/x64/CareerLog Setup.exe" "../CareerLog Setup.exe"
+# Setup.exe를 CareerLog for Win 폴더에 복사 (루트 X)
+cp "out/make/squirrel.windows/x64/CareerLog Setup.exe" "../CareerLog for Win/CareerLog Setup.exe"
 # 깃 커밋 & 푸시
 cd ..
-git add "CareerLog Setup.exe"
+git add "CareerLog for Win/CareerLog Setup.exe"
 git commit -m "..."
 git push
 ```
