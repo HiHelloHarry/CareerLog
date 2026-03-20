@@ -13,6 +13,7 @@ export default function Settings({ onApiKeySaved }) {
   const [importStatus, setImportStatus] = useState(null)
   const [credits, setCredits] = useState(null)
   const [skipTagging, setSkipTagging] = useState(false)
+  const [closeAction, setCloseAction] = useState('') // '' | 'tray' | 'quit'
   const [profile, setProfile] = useState({ job_role: '', job_level: '', skills: '' })
   const [profileSaved, setProfileSaved] = useState(false)
 
@@ -22,6 +23,7 @@ export default function Settings({ onApiKeySaved }) {
     window.careerlog.getCredits().then(data => setCredits(data?.remaining ?? null))
     window.careerlog.getAppSettings().then(s => {
       setSkipTagging(!!s.skip_tagging)
+      setCloseAction(s.close_action || '')
       setProfile({
         job_role:  s.job_role  || '',
         job_level: s.job_level || '',
@@ -29,6 +31,11 @@ export default function Settings({ onApiKeySaved }) {
       })
     })
   }, [])
+
+  async function handleSetCloseAction(action) {
+    setCloseAction(action)
+    await window.careerlog.saveAppSettings({ close_action: action })
+  }
 
   async function handleSaveProfile() {
     await window.careerlog.saveAppSettings({
@@ -337,7 +344,7 @@ export default function Settings({ onApiKeySaved }) {
 
       {/* 업무 흐름 설정 */}
       <SettingsCard icon="⚡" title="업무 흐름">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>업무 종료 후 태깅 건너뛰기</p>
             <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>종료 즉시 타임라인으로 이동합니다.<br />숙련 사용자에게 권장합니다.</p>
@@ -355,6 +362,26 @@ export default function Settings({ onApiKeySaved }) {
               background: '#fff', transition: 'left .2s',
             }} />
           </button>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>X 버튼 닫기 동작</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: '',      label: '매번 묻기' },
+              { value: 'tray',  label: '트레이로 이동' },
+              { value: 'quit',  label: '완전 종료' },
+            ].map(({ value, label }) => (
+              <button key={value} onClick={() => handleSetCloseAction(value)} style={{
+                flex: 1, padding: '8px 0', borderRadius: 9, fontSize: 12.5, fontWeight: 600,
+                border: `1.5px solid ${closeAction === value ? 'rgba(212,168,75,.4)' : 'var(--border)'}`,
+                background: closeAction === value ? 'var(--a-dim)' : 'var(--bg3)',
+                color: closeAction === value ? 'var(--a)' : 'var(--ink3)',
+                cursor: 'pointer', transition: 'all .15s',
+                fontFamily: "'Noto Sans KR', sans-serif",
+              }}>{label}</button>
+            ))}
+          </div>
         </div>
       </SettingsCard>
 

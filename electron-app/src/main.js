@@ -103,7 +103,7 @@ function updateTrayMenu() {
   template.push({ type: 'separator' });
   template.push({
     label: '종료',
-    click: () => { if (isTracking) stopTracking(); app.exit(0); },
+    click: () => doQuit(),
   });
 
   tray.setContextMenu(Menu.buildFromTemplate(template));
@@ -132,6 +132,11 @@ async function stopTracking({ openWindow = true } = {}) {
   isTracking = false;
   updateTrayMenu();
   if (openWindow) openMainWindow('timeline');
+}
+
+async function doQuit() {
+  if (isTracking) await stopTracking({ openWindow: false });
+  app.exit(0);
 }
 
 function startTrackingFromTray() {
@@ -174,9 +179,37 @@ function openMainWindow(view = 'home') {
     );
   }
 
-  mainWindow.on('close', (e) => {
+  mainWindow.on('close', async (e) => {
     e.preventDefault();
-    mainWindow.hide();
+
+    // 저장된 선택이 있으면 바로 실행
+    const settings = readAppSettings();
+    if (settings.close_action === 'tray') { mainWindow.hide(); return; }
+    if (settings.close_action === 'quit') { doQuit(); return; }
+
+    // 다이얼로그 표시
+    const { response, checkboxChecked } = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      buttons: ['트레이로 이동', '완전 종료'],
+      defaultId: 0,
+      title: 'CareerLog',
+      message: '창을 닫으면 어떻게 할까요?',
+      detail: '트레이로 이동하면 백그라운드에서 계속 실행됩니다.',
+      checkboxLabel: '다음부터 묻지 않기',
+      checkboxChecked: false,
+    });
+
+    if (checkboxChecked) {
+      const s = readAppSettings();
+      s.close_action = response === 0 ? 'tray' : 'quit';
+      writeAppSettings(s);
+    }
+
+    if (response === 0) {
+      mainWindow.hide();
+    } else {
+      doQuit();
+    }
   });
 
   mainWindow.on('closed', () => { mainWindow = null; });
