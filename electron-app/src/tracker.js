@@ -14,21 +14,31 @@ let onIdleCb  = null;
 let isIdle    = false;
 let idleStart = null;
 
-// PowerShell UIAutomation으로 포그라운드 창 정보 조회 (~400ms)
+// Win32 API로 포그라운드 창 직접 조회 (MainWindowTitle 오염 방지)
 const PS_CMD = `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8
 $OutputEncoding=[System.Text.Encoding]::UTF8
 $ErrorActionPreference='SilentlyContinue'
-Add-Type -AssemblyName UIAutomationClient
-$el = [System.Windows.Automation.AutomationElement]::FocusedElement
-if ($el) {
-  $pid2 = $el.Current.ProcessId
-  $p = Get-Process -Id $pid2 -ErrorAction SilentlyContinue
-  if ($p) {
-    $n = $p.Name -replace '"', '\\"'
-    $t = $p.MainWindowTitle -replace '"', '\\"'
-    Write-Output ('{"owner":{"name":"' + $n + '"},"title":"' + $t + '"}')
-  } else { Write-Output 'null' }
-} else { Write-Output 'null' }`;
+Add-Type @"
+using System;using System.Runtime.InteropServices;using System.Text;
+public class CL32{
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h,out uint pid);
+  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
+}
+"@
+$hwnd=[CL32]::GetForegroundWindow()
+if($hwnd -ne [IntPtr]::Zero){
+  $sb=New-Object System.Text.StringBuilder 512
+  [CL32]::GetWindowText($hwnd,$sb,512)|Out-Null
+  $t=$sb.ToString()-replace'"','\"'
+  $pid2=0
+  [CL32]::GetWindowThreadProcessId($hwnd,[ref]$pid2)|Out-Null
+  $p=Get-Process -Id $pid2 -ErrorAction SilentlyContinue
+  if($p){
+    $n=$p.Name-replace'"','\"'
+    Write-Output ('{"owner":{"name":"'+$n+'"},"title":"'+$t+'"}')
+  }else{Write-Output 'null'}
+}else{Write-Output 'null'}`;
 
 function queryActiveWindow() {
   return new Promise((resolve) => {
