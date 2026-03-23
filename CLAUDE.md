@@ -7,13 +7,13 @@
 - Electron + Vite + React (electron-forge, Squirrel 인스톨러)
 - 스토리지: JSON 파일 (electron-store 사용 금지 — 패키징 오류 발생)
 - 로컬 AI 서버: 순수 Node.js `http` 모듈, port 3759 (express 사용 금지 — 패키징 오류 발생)
-- 활동 감지: PowerShell UIAutomation (active-win 대체 — 아래 참고)
+- 활동 감지: PowerShell 영구 프로세스 (spawn 1회, 내부 루프 — active-win 대체)
 
 ## 주요 파일
 ```
 electron-app/src/
   main.js          IPC 핸들러, 트레이, 추적 제어, 주간 알림, 닫기 동작
-  tracker.js       PowerShell 폴링(10초), idle 감지(5분)
+  tracker.js       PowerShell 영구 프로세스(spawn 1회, 10초 루프), idle 감지(15분, 조용히)
   database.js      모든 파일 I/O (sessions/activities/career_records/app_settings)
   ai.js            AI 프롬프트 생성 + 로컬 서버 호출
   local-server.js  로컬 HTTP 서버 (Node.js http 모듈)
@@ -22,10 +22,10 @@ electron-app/src/
   components/
     Home.jsx / Timeline.jsx / CareerResult.jsx
     Settings.jsx / Onboarding.jsx / Done.jsx
-    IdleDialog.jsx / TaggingSession.jsx / Dashboard.jsx
+    TaggingSession.jsx / Dashboard.jsx
 backend/
   server.js        Railway 배포용 Express 서버 (현재 미사용)
-docs/
+상세기획/
   dashboard-spec-v1.md  대시보드 기획서 (PD 리뷰 완료)
 ```
 
@@ -98,7 +98,7 @@ timeline이 비어있어도 헤더+날짜 피커는 항상 렌더링 (빈 상태
 `handleNavClick('timeline')` → `handleNavigateTimeline()` 호출.
 sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setView만 하면 히스토리 안 보임.
 
-## 구현된 기능 목록 (v0.3)
+## 구현된 기능 목록 (v0.5)
 - R1: 샘플 데이터 온보딩 체험 (Onboarding.jsx)
 - R2: 타임라인 앱별 그룹 뷰 + 시간순 토글 (Timeline.jsx)
 - R3: 직군/직급/기술스택 프로필 설정 + AI 프롬프트 주입 (Settings.jsx, ai.js)
@@ -110,11 +110,17 @@ sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setVi
 - X 버튼 닫기 동작 선택 (트레이/완전종료/매번묻기) + Settings 연동
 - 업무 시작/종료 토스트 알림 (3초 fade-out) — Home.jsx
 - 커리어 대시보드 (Dashboard.jsx) — 이번 주 히어로 카드, 누적 통계, 12주 히트맵, 최근 경력 기록, 앱별 TOP 사용 도구
-  - database.js: getDashboardStats() 추가
+  - database.js: getDashboardStats() 추가 (streak, insight 포함)
   - main.js: get-dashboard-stats IPC 핸들러 추가
   - Nav에 대시보드 탭 추가 (타임라인 ↔ 경력기록 사이)
   - 히트맵 셀 클릭 → 해당 날짜 타임라인으로 이동
-- tracker.js: Win32 API로 창 제목 감지 교체 (앱명·창제목 교차 오염 버그 수정)
+  - 집중 스트릭 카운터 (연속 기록 일수, 7일+ 골드 배지)
+  - 오늘의 인사이트 카드 (우선순위: 오늘 피크 시간 → 주간 비교 → 주간 합계)
+- tracker.js: Win32 API + 영구 프로세스(spawn)로 전면 교체
+  - Add-Type C# 1회 컴파일 → 10초 루프 (execFile 방식 대비 타임아웃 버그 해소)
+  - Idle 감지: powerMonitor.getSystemIdleTime() 15분, 조용히 처리 (다이얼로그 제거)
+  - 세션 중 비활성 시 자동 재시작 (3초 딜레이)
+- App.jsx: IdleDialog 완전 제거. 트레이 복귀 시 isTracking/sessionId 재동기화
 
 ## 빌드 & 배포 순서
 ```bash
