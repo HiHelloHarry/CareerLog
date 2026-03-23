@@ -40,9 +40,12 @@ export const db = {
     return readJson('sessions.json').find(s => s.id === sessionId) || null;
   },
 
-  endSession() {
+  endSession(sessionId) {
     const sessions = readJson('sessions.json');
-    const s = sessions.find(s => s.ended_at === null);
+    // sessionId 명시 시 해당 세션 종료, 아니면 첫 번째 미종료 세션 (fallback)
+    const s = sessionId
+      ? sessions.find(s => s.id === sessionId && s.ended_at === null)
+      : sessions.find(s => s.ended_at === null);
     if (s) s.ended_at = new Date().toISOString();
     writeJson('sessions.json', sessions);
   },

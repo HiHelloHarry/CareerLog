@@ -77,8 +77,14 @@ export default function App() {
       setView(v)
       // 트레이에서 홈으로 복귀 시 세션 갱신 (타이머 started_at 보장)
       if (v === 'home') {
-        const s = await window.careerlog.getLastSession()
+        const [s, status] = await Promise.all([
+          window.careerlog.getLastSession(),
+          window.careerlog.getStatus(),
+        ])
         if (s) setSession(s)
+        // 트레이 복귀 시 isTracking / sessionId 재동기화 (타이머 리셋 방지)
+        setIsTracking(status.isTracking)
+        if (status.sessionId) setSessionId(status.sessionId)
       }
       if (v === 'timeline') {
         // sessionIdRef가 아직 null일 경우 main process에서 직접 조회

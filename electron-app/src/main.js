@@ -112,6 +112,7 @@ function updateTrayMenu() {
 
 // ── 추적 제어 ────────────────────────────────────────────
 function startTracking(project = '') {
+  if (isTracking) return; // double-start 방어
   currentSessionId = db.startSession(project);
   tracker.start(
     currentSessionId,
@@ -128,8 +129,9 @@ function startTracking(project = '') {
 
 async function stopTracking({ openWindow = true } = {}) {
   await tracker.stop();
-  db.endSession();
+  db.endSession(currentSessionId);
   isTracking = false;
+  currentSessionId = null;
   updateTrayMenu();
   if (openWindow) openMainWindow('timeline');
 }
