@@ -41,7 +41,6 @@ let sessionId  = null;
 let current    = null;
 let lastActivity  = null;
 let onActivityChangeCb = null;
-let onIdleCb   = null;
 let isIdle     = false;
 let idleStart  = null;
 let idleIntervalId = null;
@@ -110,7 +109,7 @@ function handlePsLine(line) {
 }
 
 export const tracker = {
-  start(sid, onActivityChange, onIdle) {
+  start(sid, onActivityChange) {
     stopping = false;
     sessionId = sid;
     current   = null;
@@ -118,7 +117,6 @@ export const tracker = {
     isIdle    = false;
     idleStart = null;
     onActivityChangeCb = onActivityChange || null;
-    onIdleCb  = onIdle || null;
 
     startPsProcess();
 
@@ -136,8 +134,6 @@ export const tracker = {
 
         if (idleSec < IDLE_THRESHOLD && isIdle) {
           isIdle = false;
-          const idleMinutes = Math.round((Date.now() - new Date(idleStart).getTime()) / 60000);
-          if (onIdleCb && idleMinutes >= 1) onIdleCb({ idleMinutes, idleStart });
           idleStart = null;
         }
       } catch (err) {

@@ -5,7 +5,6 @@ import CareerResult from './components/CareerResult'
 import Settings from './components/Settings'
 import Done from './components/Done'
 import Onboarding from './components/Onboarding'
-import IdleDialog from './components/IdleDialog'
 import TaggingSession from './components/TaggingSession'
 import Dashboard from './components/Dashboard'
 
@@ -30,7 +29,6 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [canGenerate, setCanGenerate] = useState(false)
   const [error, setError] = useState(null)
-  const [idleInfo, setIdleInfo] = useState(null)   // { idleMinutes, idleStart }
   const [showTagging, setShowTagging] = useState(false)
 
   // useRef로 sessionId 최신값 항상 유지 (onNavigate 등 클로저에서 사용)
@@ -101,10 +99,6 @@ export default function App() {
         }
       }
       if (v === 'career') loadCareerRecords()
-    })
-
-    window.careerlog.onIdleReturned((data) => {
-      setIdleInfo(data)
     })
 
     window.careerlog.onTrackingStatus(async ({ isTracking, sessionId }) => {
@@ -179,13 +173,6 @@ export default function App() {
   async function handleNavigateCareer() {
     await loadCareerRecords()
     setView('career')
-  }
-
-  async function handleIdleDismiss(action, idleStart) {
-    if (action === 'working') {
-      await window.careerlog.restoreIdleTime(idleStart)
-    }
-    setIdleInfo(null)
   }
 
   function handleTaggingComplete() {
@@ -272,14 +259,6 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
-      {idleInfo && (
-        <IdleDialog
-          idleMinutes={idleInfo.idleMinutes}
-          idleStart={idleInfo.idleStart}
-          onDismiss={handleIdleDismiss}
-        />
-      )}
-
       {/* ── Left Rail ── */}
       {showNav && (
         <aside style={{

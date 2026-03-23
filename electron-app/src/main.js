@@ -116,11 +116,7 @@ function startTracking(project = '') {
   currentSessionId = db.startSession(project);
   tracker.start(
     currentSessionId,
-    () => updateTrayMenu(),
-    ({ idleMinutes, idleStart }) => {
-      mainWindow?.webContents.send('idle-returned', { idleMinutes, idleStart });
-      openMainWindow();
-    }
+    () => updateTrayMenu()
   );
   isTracking = true;
   updateTrayMenu();
