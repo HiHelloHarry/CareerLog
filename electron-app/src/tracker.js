@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { db } from './database.js';
 
 const POLL_INTERVAL  = 10 * 1000;  // 10초
-const IDLE_THRESHOLD = 5 * 60;     // 5분 (초 단위)
+const IDLE_THRESHOLD = 15 * 60;    // 15분 (초 단위)
 
 let intervalId = null;
 let sessionId  = null;
@@ -44,7 +44,7 @@ function queryActiveWindow() {
   return new Promise((resolve) => {
     execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', PS_CMD],
       { windowsHide: true, timeout: 8000, encoding: 'utf8' },
-      (err, stdout) => {
+      (_err, stdout) => {
         try { resolve(JSON.parse(stdout.trim())); } catch { resolve(null); }
       }
     );
