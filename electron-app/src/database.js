@@ -319,6 +319,72 @@ export const db = {
     const topWeekEntry = Object.entries(weekAppTime).sort((a, b) => b[1] - a[1])[0];
     const topWeekApp = topWeekEntry ? { name: topWeekEntry[0], hours: Math.round(topWeekEntry[1] / 3600 * 10) / 10 } : null;
 
+    // ── 스트릭 (활동 기록 기준 연속 일수) ──────────────────
+    const activityDateSet = new Set(activities.map(a => a.started_at?.split('T')[0]).filter(Boolean));
+    let streak = 0;
+    {
+      const checkDate = new Date(now);
+      // 오늘 기록 없으면 어제부터 체크 (출근 직후 streak 안 깨지도록)
+      if (!activityDateSet.has(todayDate)) checkDate.setDate(checkDate.getDate() - 1);
+      while (true) {
+        const d = checkDate.toISOString().split('T')[0];
+        if (!activityDateSet.has(d)) break;
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+    }
+
+    // ── 지난주 시간 (비교용) ───────────────────────────────
+    const lastMonday = new Date(monday);
+    lastMonday.setDate(monday.getDate() - 7);
+    const lastWeekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(lastMonday);
+      d.setDate(lastMonday.getDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+    const lastWeekHours = Math.round(
+      activities.filter(a => lastWeekDates.includes(a.started_at?.split('T')[0]))
+        .reduce((acc, a) => acc + (a.duration_sec || 0), 0) / 3600 * 10
+    ) / 10;
+
+    // ── 오늘의 인사이트 ────────────────────────────────────
+    let insight = null;
+    const todayActs = activities.filter(a => a.started_at?.startsWith(todayDate));
+    const todayHours = Math.round(todayActs.reduce((s, a) => s + (a.duration_sec || 0), 0) / 3600 * 10) / 10;
+
+    if (todayActs.length > 0) {
+      // 오늘 피크 시간대
+      const hourMap = {};
+      todayActs.forEach(a => {
+        const h = new Date(a.started_at).getHours();
+        hourMap[h] = (hourMap[h] || 0) + (a.duration_sec || 0);
+      });
+      const peakEntry = Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0];
+      if (peakEntry) {
+        const h = parseInt(peakEntry[0]);
+        const ampm = h < 12 ? '오전' : '오후';
+        const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        insight = {
+          icon: '⚡',
+          text: `${ampm} ${display}시가 오늘 최고 집중 시간이에요`,
+          sub: `오늘 ${todayHours}시간 기록 중`,
+        };
+      }
+    } else if (weekTotalHours > 0) {
+      if (lastWeekHours > 0) {
+        const diff = Math.round((weekTotalHours - lastWeekHours) * 10) / 10;
+        if (diff > 0.1) {
+          insight = { icon: '📈', text: `지난주보다 ${diff}시간 더 일하고 있어요`, sub: `이번 주 ${weekTotalHours}h · 지난주 ${lastWeekHours}h` };
+        } else if (diff < -0.1) {
+          insight = { icon: '😌', text: `이번 주 조금 여유롭게 일하고 있어요`, sub: `이번 주 ${weekTotalHours}h · 지난주 ${lastWeekHours}h` };
+        } else {
+          insight = { icon: '💪', text: `지난주와 비슷한 페이스로 일하고 있어요`, sub: `이번 주 ${weekTotalHours}h` };
+        }
+      } else {
+        insight = { icon: '💪', text: `이번 주 ${weekTotalHours}시간 기록 중이에요`, sub: '기록이 쌓일수록 더 많이 보여요' };
+      }
+    }
+
     // 히트맵: 최근 84일
     const heatmap = Array.from({ length: 84 }, (_, i) => {
       const d = new Date(now);
@@ -358,7 +424,7 @@ export const db = {
       weeklyHours, weekTotalHours, topWeekApp, weekDates,
       heatmap, recentRecords,
       topApps: { week: toTop3(appBuckets.week), month: toTop3(appBuckets.month), all: toTop3(appBuckets.all) },
-      todayDate: now.toISOString().split('T')[0],
+      todayDate: now.toISOString().split('T')[0], streak, insight,
     };
   },
 

@@ -59,7 +59,7 @@ export default function Dashboard({ onGoCareer, onGoTimeline }) {
 
   const { totalWorkDays, totalHours, totalRecords, totalUniqueApps,
     weeklyHours, weekTotalHours, topWeekApp, weekDates,
-    heatmap, recentRecords, topApps, todayDate } = stats
+    heatmap, recentRecords, topApps, todayDate, streak, insight } = stats
 
   const topAppList = topApps[topFilter] || []
   const maxTopHours = topAppList[0]?.hours || 1
@@ -91,14 +91,45 @@ export default function Dashboard({ onGoCareer, onGoTimeline }) {
   return (
     <div style={{ padding: '20px 24px 32px', maxWidth: 680, margin: '0 auto' }}>
       {/* 헤더 */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: 'var(--ink)', letterSpacing: '-.3px' }}>
-          내 커리어 현황
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: 'var(--ink)', letterSpacing: '-.3px' }}>
+            내 커리어 현황
+          </div>
+          {streak >= 1 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: streak >= 7 ? 'rgba(212,168,75,.15)' : 'var(--bg3)',
+              border: `1px solid ${streak >= 7 ? 'rgba(212,168,75,.3)' : 'var(--border)'}`,
+              borderRadius: 20, padding: '4px 12px',
+            }}>
+              <span style={{ fontSize: 14 }}>🔥</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: streak >= 7 ? 'var(--a)' : 'var(--ink2)' }}>
+                {streak}일 연속
+              </span>
+            </div>
+          )}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
           {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
+
+      {/* ── 인사이트 카드 ── */}
+      {insight && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          background: 'linear-gradient(135deg, rgba(212,168,75,.1), rgba(212,168,75,.03))',
+          border: '1px solid rgba(212,168,75,.2)',
+          borderRadius: 12, padding: '14px 18px', marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 26, flexShrink: 0 }}>{insight.icon}</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{insight.text}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>{insight.sub}</div>
+          </div>
+        </div>
+      )}
 
       {/* ── Section A: 이번 주 히어로 카드 ── */}
       <Card style={{ marginBottom: 12 }}>
