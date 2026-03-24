@@ -105,6 +105,13 @@ export const db = {
     return { success: true };
   },
 
+  // 활동 기록 삭제
+  deleteActivity(activityId) {
+    const activities = readJson('activities.json');
+    writeJson('activities.json', activities.filter(a => a.id !== activityId));
+    return { success: true };
+  },
+
   // 작업 유형 저장 — work_type 필드
   saveWorkType(activityId, workType) {
     const activities = readJson('activities.json');

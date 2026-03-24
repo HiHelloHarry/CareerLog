@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('careerlog', {
 
   // 태그 저장
   saveTag:          (activityId, tag)            => ipcRenderer.invoke('save-tag', activityId, tag),
+  deleteActivity:   (activityId)                 => ipcRenderer.invoke('delete-activity', activityId),
   saveWorkType:     (activityId, workType)       => ipcRenderer.invoke('save-work-type', activityId, workType),
   restoreIdleTime:  (idleStart)       => ipcRenderer.invoke('restore-idle-time', idleStart),
 

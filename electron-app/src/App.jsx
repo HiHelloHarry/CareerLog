@@ -334,6 +334,10 @@ export default function App() {
                 sessions={sessions}
                 canGenerate={canGenerate}
                 onSaveMemo={handleSaveMemo}
+                onDeleteActivity={async (id) => {
+                  await window.careerlog.deleteActivity(id)
+                  setTimeline(prev => prev.filter(a => a.id !== id))
+                }}
                 onGenerate={handleGenerate}
                 isGenerating={isGenerating}
                 onSelectSession={async (sid) => {

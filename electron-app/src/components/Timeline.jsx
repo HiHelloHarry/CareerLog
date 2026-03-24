@@ -7,7 +7,7 @@ const TEMPLATES = [
   { id: 'outcome',  label: '결과 중심',     desc: '시니어급 지원' },
 ]
 
-export default function Timeline({ timeline, session, sessions = [], canGenerate, onSaveMemo, onGenerate, isGenerating, onSelectSession }) {
+export default function Timeline({ timeline, session, sessions = [], canGenerate, onSaveMemo, onDeleteActivity, onGenerate, isGenerating, onSelectSession }) {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState('star')
   const [viewMode, setViewMode] = useState('group') // 'group' | 'list'
@@ -181,7 +181,7 @@ export default function Timeline({ timeline, session, sessions = [], canGenerate
           {viewMode === 'group' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {grouped.map(g => (
-                <GroupItem key={g.app_name} group={g} onSaveMemo={onSaveMemo} />
+                <GroupItem key={g.app_name} group={g} onSaveMemo={onSaveMemo} onDeleteActivity={onDeleteActivity} />
               ))}
             </div>
           )}
@@ -192,7 +192,7 @@ export default function Timeline({ timeline, session, sessions = [], canGenerate
               <div style={{ position: 'absolute', left: 19, top: 6, bottom: 6, width: 1, background: 'var(--border)' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {timeline.map((activity, idx) => (
-                  <ActivityItem key={activity.id || idx} activity={activity} onSaveMemo={onSaveMemo} />
+                  <ActivityItem key={activity.id || idx} activity={activity} onSaveMemo={onSaveMemo} onDeleteActivity={onDeleteActivity} />
                 ))}
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function Timeline({ timeline, session, sessions = [], canGenerate
   )
 }
 
-function GroupItem({ group, onSaveMemo }) {
+function GroupItem({ group, onSaveMemo, onDeleteActivity }) {
   const [expanded, setExpanded] = useState(false)
   const icon = getAppIcon(group.app_name)
   const hasMemo = group.activities.some(a => a.memo)
@@ -279,24 +279,9 @@ function GroupItem({ group, onSaveMemo }) {
         <span style={{ fontSize: 12, color: 'var(--ink3)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▾</span>
       </button>
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--border)', padding: '8px 14px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '8px 14px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {group.activities.map((a, i) => (
-            <div key={a.id || i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12 }}>
-              <span style={{ color: 'var(--ink4)', fontFamily: 'monospace', flexShrink: 0, paddingTop: 1 }}>
-                {formatTime(a.started_at)}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {a.window_title && (
-                  <p style={{ color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {a.window_title}
-                  </p>
-                )}
-                {a.memo && (
-                  <p style={{ color: 'var(--a)', marginTop: 2 }}>📝 {a.memo}</p>
-                )}
-              </div>
-              <span className="chip chip-dim" style={{ flexShrink: 0 }}>{formatDuration(a.duration_sec)}</span>
-            </div>
+            <GroupActivityRow key={a.id || i} activity={a} onSaveMemo={onSaveMemo} onDeleteActivity={onDeleteActivity} />
           ))}
         </div>
       )}
@@ -304,11 +289,78 @@ function GroupItem({ group, onSaveMemo }) {
   )
 }
 
-function ActivityItem({ activity, onSaveMemo }) {
+function GroupActivityRow({ activity, onSaveMemo, onDeleteActivity }) {
+  const [memo, setMemo] = useState(activity.memo || '')
+  const [isEditingMemo, setIsEditingMemo] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [hover, setHover] = useState(false)
+
+  async function handleSaveMemo() {
+    await onSaveMemo(activity.id, memo)
+    setIsEditingMemo(false)
+  }
+
+  async function handleDelete() {
+    await onDeleteActivity(activity.id)
+  }
+
+  return (
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setConfirmDelete(false) }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12, padding: '4px 0' }}>
+      <span style={{ color: 'var(--ink4)', fontFamily: 'monospace', flexShrink: 0, paddingTop: 2 }}>
+        {formatTime(activity.started_at)}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {activity.window_title && (
+          <p style={{ color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {activity.window_title}
+          </p>
+        )}
+        {isEditingMemo ? (
+          <div style={{ display: 'flex', gap: 5, marginTop: 4 }}>
+            <input value={memo} onChange={e => setMemo(e.target.value)} autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') handleSaveMemo(); if (e.key === 'Escape') { setIsEditingMemo(false); setMemo(activity.memo || '') } }}
+              placeholder="이 시간에 뭘 했는지 기록..."
+              style={{ flex: 1, fontSize: 12, background: 'var(--bg3)', border: '1.5px solid var(--a)', borderRadius: 6, padding: '4px 8px', color: 'var(--ink)', outline: 'none', fontFamily: "'Noto Sans KR', sans-serif" }}
+            />
+            <button onClick={handleSaveMemo} style={sBtnStyle('var(--a)', '#000', 10)}>저장</button>
+            <button onClick={() => { setIsEditingMemo(false); setMemo(activity.memo || '') }} style={sBtnStyle('var(--bg3)', 'var(--ink3)', 10)}>취소</button>
+          </div>
+        ) : (
+          <button onClick={() => setIsEditingMemo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}>
+            {memo ? (
+              <span style={{ color: 'var(--a)', fontSize: 11.5 }}>📝 {memo}</span>
+            ) : hover ? (
+              <span style={{ color: 'var(--ink4)', fontSize: 11.5 }}>+ 메모</span>
+            ) : null}
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+        <span className="chip chip-dim">{formatDuration(activity.duration_sec)}</span>
+        {confirmDelete ? (
+          <>
+            <button onClick={handleDelete} style={sBtnStyle('var(--r-dim)', 'var(--r)', 10)}>확인</button>
+            <button onClick={() => setConfirmDelete(false)} style={sBtnStyle('var(--bg3)', 'var(--ink3)', 10)}>취소</button>
+          </>
+        ) : hover && (
+          <button onClick={() => setConfirmDelete(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+            onMouseOver={e => { e.currentTarget.style.color = 'var(--r)' }}
+            onMouseOut={e => { e.currentTarget.style.color = 'var(--ink4)' }}
+          >×</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ActivityItem({ activity, onSaveMemo, onDeleteActivity }) {
   const [memo, setMemo] = useState(activity.memo || '')
   const [isEditing, setIsEditing] = useState(false)
   const [saved, setSaved] = useState(false)
   const [hover, setHover] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const appIcon = getAppIcon(activity.app_name)
   const startTime = formatTime(activity.started_at)
@@ -356,10 +408,24 @@ function ActivityItem({ activity, onSaveMemo }) {
               </p>
             )}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'monospace', flexShrink: 0, textAlign: 'right', lineHeight: 1.6 }}>
-            <div>{startTime}</div>
-            <div style={{ color: 'var(--border2)', textAlign: 'center' }}>↓</div>
-            <div>{endTime}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'monospace', textAlign: 'right', lineHeight: 1.6 }}>
+              <div>{startTime}</div>
+              <div style={{ color: 'var(--border2)', textAlign: 'center' }}>↓</div>
+              <div>{endTime}</div>
+            </div>
+            {confirmDelete ? (
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => onDeleteActivity(activity.id)} style={sBtnStyle('var(--r-dim)', 'var(--r)', 10)}>확인</button>
+                <button onClick={() => setConfirmDelete(false)} style={sBtnStyle('var(--bg3)', 'var(--ink3)', 10)}>취소</button>
+              </div>
+            ) : hover && !isEditing && (
+              <button onClick={() => setConfirmDelete(true)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink4)', fontSize: 13, padding: '0 2px' }}
+                onMouseOver={e => { e.currentTarget.style.color = 'var(--r)' }}
+                onMouseOut={e => { e.currentTarget.style.color = 'var(--ink4)' }}
+              >× 삭제</button>
+            )}
           </div>
         </div>
 
@@ -405,8 +471,8 @@ function ActivityItem({ activity, onSaveMemo }) {
   )
 }
 
-function sBtnStyle(bg, color) {
-  return { padding: '7px 12px', borderRadius: 8, background: bg, color, border: 'none', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'Noto Sans KR', sans-serif", flexShrink: 0 }
+function sBtnStyle(bg, color, fontSize = 12.5) {
+  return { padding: '5px 10px', borderRadius: 7, background: bg, color, border: 'none', fontSize, fontWeight: 600, cursor: 'pointer', fontFamily: "'Noto Sans KR', sans-serif", flexShrink: 0 }
 }
 
 function Spinner() {
