@@ -8,6 +8,7 @@ const USE_LOCAL_SERVER = true;
 const RAILWAY_URL = 'https://careerlog-backend-production.up.railway.app';
 const FREE_LIMIT = 20;
 import started from 'electron-squirrel-startup';
+import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
 process.on('uncaughtException', (err) => {
   console.error('[CRASH]', err.stack);
@@ -15,6 +16,18 @@ process.on('uncaughtException', (err) => {
 });
 
 if (started) app.quit();
+
+// 자동 업데이트 — GitHub Releases 기반 (프로덕션 빌드에서만 동작)
+if (app.isPackaged) {
+  updateElectronApp({
+    updateSource: {
+      type: UpdateSourceType.ElectronPublicUpdateService,
+      repo: 'HiHelloHarry/CareerLog',
+    },
+    updateInterval: '1 hour',
+    notifyUser: true,
+  });
+}
 
 let tray = null;
 let mainWindow = null;

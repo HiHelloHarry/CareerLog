@@ -2,6 +2,16 @@ const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: { owner: 'HiHelloHarry', name: 'CareerLog' },
+        prerelease: false,
+        draft: true, // 먼저 Draft로 올린 뒤 직접 Publish
+      },
+    },
+  ],
   packagerConfig: {
     name: 'CareerLog',
     executableName: 'CareerLog',

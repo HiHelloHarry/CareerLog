@@ -5,6 +5,7 @@
   "description": "업무 자동 감지 → 경력 기록 자동화",
   "main": ".vite/build/main.js",
   "private": true,
+  "repository": "https://github.com/HiHelloHarry/CareerLog",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -24,6 +25,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron-forge/plugin-vite": "^7.11.1",
+    "@electron-forge/publisher-github": "^7.11.1",
     "@electron/fuses": "^1.8.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@vitejs/plugin-react": "^4.7.0",
@@ -40,6 +42,7 @@
     "electron-store": "^11.0.2",
     "express": "^5.2.1",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "update-electron-app": "^3.1.2"
   }
 }
