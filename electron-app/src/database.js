@@ -265,7 +265,13 @@ export const db = {
     const records    = readJson('career_records.json');
     const settings   = readAppSettings();
     const blacklist  = (settings.blacklist || []).map(a => a.toLowerCase());
-    const SYSTEM     = ['careerlog', 'explorer', 'svchost', 'dwm', 'taskhost', 'searchui', 'cortana', 'applicationframehost', 'shellexperiencehost'];
+    const SYSTEM     = [
+      'careerlog', 'explorer', 'svchost', 'dwm', 'taskhost', 'searchui', 'cortana',
+      'applicationframehost', 'shellexperiencehost', 'startmenuexperiencehost',
+      'searchhost', 'lockapp', 'textinputhost', 'winlogon', 'runtimebroker',
+      'taskmgr', 'systemsettings', 'snippingtool', 'screensketch', 'lockscreenhost',
+      'fontdrvhost', 'ctfmon', 'sihost', 'taskhostw', 'dllhost',
+    ];
 
     const isSystemApp = (name) => {
       const n = (name || '').toLowerCase();

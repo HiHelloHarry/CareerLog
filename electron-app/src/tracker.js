@@ -93,7 +93,14 @@ function handlePsLine(line) {
     const appName     = data.n;
     const windowTitle = data.t || '';
 
-    if (appName.toLowerCase() === 'careerlog') return;
+    const SYSTEM_APPS = new Set([
+      'careerlog', 'explorer', 'svchost', 'dwm', 'taskhost', 'searchui', 'cortana',
+      'applicationframehost', 'shellexperiencehost', 'startmenuexperiencehost',
+      'searchhost', 'lockapp', 'textinputhost', 'winlogon', 'runtimebroker',
+      'taskmgr', 'systemsettings', 'snippingtool', 'screensketch', 'lockscreenhost',
+      'fontdrvhost', 'ctfmon', 'sihost', 'taskhostw', 'dllhost',
+    ]);
+    if (SYSTEM_APPS.has(appName.toLowerCase())) return;
 
     const isSame = current &&
       current.appName     === appName &&

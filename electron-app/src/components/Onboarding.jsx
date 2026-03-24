@@ -105,6 +105,9 @@ export default function Onboarding({ onComplete }) {
             시작하기 →
           </button>
           <p style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 10 }}>예상 소요 시간: 2분</p>
+          <p style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.6 }}>
+            🔒 모든 기록은 이 PC에만 저장됩니다. 외부 서버로 전송되지 않습니다.
+          </p>
         </div>
       )}
 
