@@ -17,17 +17,17 @@ process.on('uncaughtException', (err) => {
 
 if (started) app.quit();
 
-// 자동 업데이트 — GitHub Releases 기반 (프로덕션 빌드에서만 동작)
-if (app.isPackaged) {
-  updateElectronApp({
-    updateSource: {
-      type: UpdateSourceType.ElectronPublicUpdateService,
-      repo: 'HiHelloHarry/CareerLog',
-    },
-    updateInterval: '1 hour',
-    notifyUser: true,
-  });
-}
+// 자동 업데이트 — 레포 공개 전환 시 아래 주석 해제
+// if (app.isPackaged) {
+//   updateElectronApp({
+//     updateSource: {
+//       type: UpdateSourceType.ElectronPublicUpdateService,
+//       repo: 'HiHelloHarry/CareerLog',
+//     },
+//     updateInterval: '1 hour',
+//     notifyUser: true,
+//   });
+// }
 
 let tray = null;
 let mainWindow = null;
