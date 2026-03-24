@@ -27,6 +27,7 @@ backend/
   server.js        Railway 배포용 Express 서버 (현재 미사용)
 상세기획/
   dashboard-spec-v1.md  대시보드 기획서 (PD 리뷰 완료)
+  recording-accuracy-upgrade-v1.md  기록 정확도 고도화 기획서 (구현 완료)
 ```
 
 ## 데이터 파일 (userData/data/ = C:\Users\<user>\AppData\Roaming\CareerLog\data\)
@@ -70,6 +71,14 @@ backend/
 - `windowsHide: true` 필수 (PowerShell 창 플래시 방지)
 - CareerLog 자기 자신(`appName === 'careerlog'`)은 추적 제외
 
+### 기록 정확도 고도화 (v0.7)
+- **앱별 창 제목 파서 (17개)**: VS Code, Chrome, Edge, Slack, Figma, Notion, Excel, Word, PPT, Zoom, Teams, KakaoTalk, Postman, IntelliJ, WebStorm, Terminal 등 — `parsed` 필드로 구조화 메타데이터 저장
+- **브라우저 URL 추출**: UIAutomationClient로 Chrome/Edge 주소창 읽기 → `parsed.url` + `parsed.domain` 저장. 민감 도메인은 호스트만, 일반 도메인도 pathname depth 2까지만 저장
+- **키보드+마우스 활동 감지**: `GetAsyncKeyState` (키보드) + `GetCursorPos`/`VK_LBUTTON` (마우스) → `parsed.inputLevel` = `active`/`light`/`passive`. 디자이너 등 마우스 중심 작업도 `active`로 판정
+- **작업 흐름(Flow) 감지**: ai.js의 `detectFlows()` — 개별 앱 전환을 의미 단위로 묶음. 같은 프로젝트의 다른 파일은 하나의 flow, 5분 이하 이탈은 [보조] 태그, 이전 flow 재합류 허용
+- **스마트 AI 프롬프트**: flow 기반 구조화 입력 + [핵심]/[보조] 역할 태그 + inputLevel 태그
+- `parsed` 필드가 없는 기존 activities.json 데이터와 100% 하위호환
+
 ### useEffect 내 IPC 이벤트 핸들러
 `useEffect(fn, [])` 클로저에서 React state가 초기값(null)에 고정됨.
 state가 필요한 경우 반드시 `useRef`로 최신값 유지.
@@ -98,7 +107,7 @@ timeline이 비어있어도 헤더+날짜 피커는 항상 렌더링 (빈 상태
 `handleNavClick('timeline')` → `handleNavigateTimeline()` 호출.
 sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setView만 하면 히스토리 안 보임.
 
-## 구현된 기능 목록 (v0.5)
+## 구현된 기능 목록 (v0.7)
 - R1: 샘플 데이터 온보딩 체험 (Onboarding.jsx)
 - R2: 타임라인 앱별 그룹 뷰 + 시간순 토글 (Timeline.jsx)
 - R3: 직군/직급/기술스택 프로필 설정 + AI 프롬프트 주입 (Settings.jsx, ai.js)
@@ -121,6 +130,13 @@ sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setVi
   - Idle 감지: powerMonitor.getSystemIdleTime() 15분, 조용히 처리 (다이얼로그 제거)
   - 세션 중 비활성 시 자동 재시작 (3초 딜레이)
 - App.jsx: IdleDialog 완전 제거. 트레이 복귀 시 isTracking/sessionId 재동기화
+- 기록 정확도 고도화 v0.7 (tracker.js, ai.js, database.js)
+  - 앱별 창 제목 파서 17개 (VS Code, Chrome, Slack, Figma, Notion, Zoom, Teams 등)
+  - 브라우저 URL 추출 (UI Automation) + 민감정보 depth 제한
+  - 키보드+마우스 활동 감지 → inputLevel (active/light/passive)
+  - 작업 흐름(Flow) 감지 — 개별 앱 전환을 의미 단위로 묶음
+  - AI 프롬프트 flow 기반 구조화 (핵심/보조 역할 태그)
+  - mergeShortActivities 앱 불일치 병합 버그 수정
 
 ## 빌드 & 배포 순서
 ```bash

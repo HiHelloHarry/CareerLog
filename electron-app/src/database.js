@@ -67,11 +67,13 @@ export const db = {
       .map(s => ({ ...s, has_career_record: recordedSessionIds.has(s.id) }));
   },
 
-  saveActivity(sessionId, appName, windowTitle, startedAt, endedAt) {
+  saveActivity(sessionId, appName, windowTitle, startedAt, endedAt, parsed = null) {
     const activities = readJson('activities.json');
     const id = nextId(activities);
     const durationSec = Math.round((new Date(endedAt) - new Date(startedAt)) / 1000);
-    activities.push({ id, session_id: sessionId, app_name: appName, window_title: windowTitle, started_at: startedAt, ended_at: endedAt, duration_sec: durationSec, memo: null });
+    const entry = { id, session_id: sessionId, app_name: appName, window_title: windowTitle, started_at: startedAt, ended_at: endedAt, duration_sec: durationSec, memo: null };
+    if (parsed && Object.keys(parsed).length > 0) entry.parsed = parsed;
+    activities.push(entry);
     writeJson('activities.json', activities);
     return id;
   },
@@ -552,19 +554,36 @@ function readAppSettings() {
 
 function mergeShortActivities(activities) {
   if (!activities.length) return [];
-  const THRESHOLD = 300;
+  const THRESHOLD = 300; // 5분 미만 활동 병합
   const result = [];
   let cur = { ...activities[0], merged_ids: [activities[0].id] };
 
   for (let i = 1; i < activities.length; i++) {
     const next = activities[i];
-    if (cur.app_name === next.app_name || cur.duration_sec < THRESHOLD) {
+    // #3 수정: 같은 앱일 때만 병합. 앱이 다르면 짧아도 병합하지 않음 (가비지 방지)
+    // 같은 앱의 연속 사용: 항상 병합 (탭 전환 등)
+    // 같은 앱 + 짧은 현재 활동: 병합 (잠깐 스쳐간 것)
+    const sameApp = cur.app_name === next.app_name;
+    if (sameApp) {
       cur.ended_at = next.ended_at;
       cur.duration_sec = Math.round((new Date(cur.ended_at) - new Date(cur.started_at)) / 1000);
       cur.merged_ids.push(next.id);
       if ((next.window_title || '').length > (cur.window_title || '').length) {
         cur.window_title = next.window_title;
       }
+      // parsed 병합: 더 풍부한 쪽 유지
+      if (next.parsed && (!cur.parsed || Object.keys(next.parsed).length > Object.keys(cur.parsed || {}).length)) {
+        cur.parsed = next.parsed;
+      }
+    } else if (cur.duration_sec < THRESHOLD && next.app_name === (result[result.length - 1]?.app_name)) {
+      // 짧은 현재 활동이 이전과 다음 사이에 끼인 경우 → 이전 것에 흡수
+      // (예: VS Code 30분 → Chrome 10초 → VS Code → Chrome은 이전 VS Code에 흡수)
+      result[result.length - 1].ended_at = cur.ended_at;
+      result[result.length - 1].duration_sec = Math.round(
+        (new Date(cur.ended_at) - new Date(result[result.length - 1].started_at)) / 1000
+      );
+      result[result.length - 1].merged_ids.push(...cur.merged_ids);
+      cur = { ...next, merged_ids: [next.id] };
     } else {
       result.push(cur);
       cur = { ...next, merged_ids: [next.id] };
