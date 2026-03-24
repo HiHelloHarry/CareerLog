@@ -24,7 +24,16 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''version:'''', d.get\\(''''version''''\\)\\)\")",
       "Bash(node -e \"const p = require\\(''c:/Users/diverse/Desktop/CareerLog/app/node_modules/electron/package.json''\\); console.log\\(''version:'', p.version\\)\")",
       "Bash(node_modules/electron/dist/electron.exe src/main/debug.js)",
-      "Read(//c/Users/diverse/**)"
+      "Read(//c/Users/diverse/**)",
+      "WebSearch",
+      "WebFetch(domain:www.bizinfo.go.kr)",
+      "WebFetch(domain:www.nextunicorn.kr)",
+      "WebFetch(domain:www.kakao.vc)",
+      "WebFetch(domain:www.nipa.kr)",
+      "WebFetch(domain:www.help-me.kr)",
+      "WebFetch(domain:llumos.co)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\diverse\\Desktop\\CareerLog\\agents",
