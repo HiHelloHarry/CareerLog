@@ -7,7 +7,7 @@ const STAR_FIELDS = [
   { key: 'result',    label: 'Result',    color: 'var(--ink)', dimColor: 'var(--bg3)', borderColor: 'var(--border2)' },
 ]
 
-export default function CareerResult({ content, star, records, onBack }) {
+export default function CareerResult({ content, star, records, onBack, onRecordDeleted, onRecordRegenerated }) {
   const [copied, setCopied] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -17,6 +17,8 @@ export default function CareerResult({ content, star, records, onBack }) {
   const [view, setView] = useState('star') // 'star' | 'bullets'
   const [projectFilter, setProjectFilter] = useState('') // '' = 전체
   const [exportStatus, setExportStatus] = useState(null) // null | 'exporting' | 'done' | 'error'
+  const [isConfirmDelete, setIsConfirmDelete] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
   // 프로젝트 목록 추출 (빈 문자열 제외)
   const projects = [...new Set((records || []).map(r => r.project).filter(Boolean))]
@@ -73,6 +75,25 @@ export default function CareerResult({ content, star, records, onBack }) {
     else if (res?.cancelled) setExportStatus(null)
     else setExportStatus('error')
     if (res?.success) setTimeout(() => setExportStatus(null), 3000)
+  }
+
+  async function handleDelete() {
+    const target = displayRecord
+    if (!target?.id) return
+    await window.careerlog.deleteCareerRecord(target.id)
+    setIsConfirmDelete(false)
+    setSelectedRecord(null)
+    if (onRecordDeleted) onRecordDeleted(target.id)
+  }
+
+  async function handleRegenerate() {
+    const target = displayRecord
+    if (!target?.id) return
+    setIsRegenerating(true)
+    const result = await window.careerlog.regenerateCareerRecord(target.id, target.template)
+    setIsRegenerating(false)
+    if (result.error) return
+    if (onRecordRegenerated) onRecordRegenerated()
   }
 
   async function handleSaveEdit() {
@@ -176,7 +197,7 @@ export default function CareerResult({ content, star, records, onBack }) {
 
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
             {/* STAR / 불릿 토글 */}
-            {displayStar && (
+            {displayStar && !isEditing && !isConfirmDelete && (
               <div style={{
                 display: 'flex', background: 'var(--bg3)', borderRadius: 8, padding: 2, gap: 2,
               }}>
@@ -191,21 +212,34 @@ export default function CareerResult({ content, star, records, onBack }) {
                 ))}
               </div>
             )}
-            {!isEditing ? (
+            {isConfirmDelete ? (
               <>
-                <ActionBtn onClick={() => setIsEditing(true)} label="✏ 수정" />
-                <CopyMenu onCopy={handleCopy} copied={copied} />
-                {displayRecord?.id && (
-                  <ExportMenu
-                    onExport={handleExport}
-                    status={exportStatus}
-                  />
-                )}
+                <span style={{ fontSize: 12, color: 'var(--r)', fontWeight: 600 }}>삭제할까요?</span>
+                <ActionBtn onClick={handleDelete} label="확인" danger />
+                <ActionBtn onClick={() => setIsConfirmDelete(false)} label="취소" />
               </>
-            ) : (
+            ) : isEditing ? (
               <>
                 <ActionBtn onClick={handleSaveEdit} label="저장" primary />
                 <ActionBtn onClick={() => { setIsEditing(false); setEditContent(displayContent || ''); setEditStar(displayStar ? { ...displayStar } : null) }} label="취소" />
+              </>
+            ) : (
+              <>
+                {displayRecord?.id && (
+                  <ActionBtn
+                    onClick={handleRegenerate}
+                    label={isRegenerating ? '생성 중...' : '↺ 재생성'}
+                    disabled={isRegenerating}
+                  />
+                )}
+                <ActionBtn onClick={() => setIsEditing(true)} label="✏ 수정" />
+                <CopyMenu onCopy={handleCopy} copied={copied} />
+                {displayRecord?.id && (
+                  <ExportMenu onExport={handleExport} status={exportStatus} />
+                )}
+                {displayRecord?.id && (
+                  <ActionBtn onClick={() => setIsConfirmDelete(true)} label="삭제" danger />
+                )}
               </>
             )}
           </div>
@@ -454,19 +488,20 @@ function ExportMenu({ onExport, status }) {
   )
 }
 
-function ActionBtn({ onClick, label, primary, gold }) {
+function ActionBtn({ onClick, label, primary, gold, danger, disabled }) {
   const [hover, setHover] = useState(false)
   return (
-    <button onClick={onClick}
+    <button onClick={onClick} disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         padding: '7px 13px', borderRadius: 8,
         background: primary ? (hover ? '#e8bc5a' : 'var(--a)') : hover ? 'var(--bg3)' : 'var(--bg2)',
-        color: primary ? '#000' : gold ? 'var(--g)' : 'var(--ink2)',
-        border: `1px solid ${primary ? 'transparent' : 'var(--border2)'}`,
-        fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+        color: primary ? '#000' : danger ? 'var(--r)' : gold ? 'var(--g)' : 'var(--ink2)',
+        border: `1px solid ${primary ? 'transparent' : danger ? 'rgba(224,112,112,.3)' : 'var(--border2)'}`,
+        fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'wait' : 'pointer',
         fontFamily: "'Noto Sans KR', sans-serif", transition: 'all .15s',
+        opacity: disabled ? 0.6 : 1,
       }}>{label}</button>
   )
 }

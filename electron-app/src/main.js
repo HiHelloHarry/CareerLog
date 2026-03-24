@@ -273,6 +273,34 @@ ipcMain.handle('update-career-record', (_, recordId, newContent, starData) => {
   return { success: true };
 });
 
+ipcMain.handle('delete-career-record', (_, recordId) => {
+  return db?.deleteCareerRecord(recordId) ?? { success: false };
+});
+
+ipcMain.handle('regenerate-career-record', async (_, recordId, template) => {
+  try {
+    // 기존 기록에서 session_id 조회
+    const records = db?.getCareerRecords() ?? [];
+    const record  = records.find(r => r.id === recordId);
+    if (!record) return { error: '기록을 찾을 수 없습니다.' };
+
+    const { generateCareerRecord } = await import('./ai.js');
+    const result = await generateCareerRecord(record.session_id, template || record.template || 'star');
+    if (result.error) return result;
+
+    // 새 레코드 생성 대신 기존 레코드를 덮어씀
+    const newRecords = db?.getCareerRecords() ?? [];
+    const latest = newRecords[0]; // generateCareerRecord가 방금 생성한 신규 레코드
+    if (latest && latest.session_id === record.session_id && latest.id !== recordId) {
+      db?.deleteCareerRecord(latest.id); // 방금 생성된 중복 레코드 제거
+    }
+    db?.updateCareerRecord(recordId, result.content, result.star || null);
+    return { ...result, recordId };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // ── API 키 ───────────────────────────────────────────────
 ipcMain.handle('save-api-key', (_, apiKey) => {
   const settings = readAppSettings();

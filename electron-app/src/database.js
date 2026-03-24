@@ -153,6 +153,12 @@ export const db = {
     }));
   },
 
+  deleteCareerRecord(recordId) {
+    const records = readJson('career_records.json');
+    writeJson('career_records.json', records.filter(r => r.id !== recordId));
+    return { success: true };
+  },
+
   updateCareerRecord(recordId, newContent, starData) {
     const records = readJson('career_records.json');
     const r = records.find(r => r.id === recordId);

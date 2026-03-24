@@ -360,6 +360,10 @@ export default function App() {
                 star={careerStar}
                 records={careerRecords}
                 onBack={() => setView('timeline')}
+                onRecordDeleted={(id) => {
+                  setCareerRecords(prev => prev.filter(r => r.id !== id))
+                }}
+                onRecordRegenerated={() => loadCareerRecords()}
               />
             </div>
           )}
