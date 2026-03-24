@@ -52,7 +52,8 @@ contextBridge.exposeInMainWorld('careerlog', {
   exportCareerRecord: (recordId, format) => ipcRenderer.invoke('export-career-record', recordId, format),
 
   // 태그 저장
-  saveTag:          (activityId, tag) => ipcRenderer.invoke('save-tag', activityId, tag),
+  saveTag:          (activityId, tag)            => ipcRenderer.invoke('save-tag', activityId, tag),
+  saveWorkType:     (activityId, workType)       => ipcRenderer.invoke('save-work-type', activityId, workType),
   restoreIdleTime:  (idleStart)       => ipcRenderer.invoke('restore-idle-time', idleStart),
 
   // 메인 프로세스 → 렌더러 이벤트

@@ -255,7 +255,8 @@ ipcMain.handle('get-last-session', () => db?.getLastSession() ?? null);
 ipcMain.handle('get-session', (_, sessionId) => db?.getSession(sessionId) ?? null);
 ipcMain.handle('get-sessions', () => db?.getSessions() ?? []);
 ipcMain.handle('save-memo', (_, activityId, memo) => db?.saveMemo(activityId, memo));
-ipcMain.handle('save-tag',  (_, activityId, tag)  => db?.saveTag(activityId, tag));
+ipcMain.handle('save-tag',      (_, activityId, tag)      => db?.saveTag(activityId, tag));
+ipcMain.handle('save-work-type', (_, activityId, workType) => db?.saveWorkType(activityId, workType));
 ipcMain.handle('get-career-records', () => db?.getCareerRecords() ?? []);
 
 ipcMain.handle('generate-career-record', async (_, sessionId, template = 'star') => {

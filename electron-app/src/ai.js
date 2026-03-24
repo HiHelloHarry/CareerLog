@@ -85,10 +85,11 @@ export async function generateCareerRecord(sessionId, template = 'star') {
   const withoutMemo = timeline.filter(a => !a.memo);
 
   const fmtActivity = (act) => {
-    const dur   = durStr(act.duration_sec);
-    const memo  = act.memo ? `[메모: ${act.memo}]` : '';
-    const title = act.window_title ? `(${act.window_title})` : '';
-    return `  - ${act.app_name} ${title} ${dur}${memo ? ' ' + memo : ''}`;
+    const dur      = durStr(act.duration_sec);
+    const memo     = act.memo      ? `[메모: ${act.memo}]`           : '';
+    const workType = act.work_type ? `[작업유형: ${act.work_type}]`   : '';
+    const title    = act.window_title ? `(${act.window_title})` : '';
+    return `  - ${act.app_name} ${title} ${dur}${workType ? ' ' + workType : ''}${memo ? ' ' + memo : ''}`;
   };
 
   let timelineSection = '';

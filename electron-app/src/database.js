@@ -105,6 +105,15 @@ export const db = {
     return { success: true };
   },
 
+  // 작업 유형 저장 — work_type 필드
+  saveWorkType(activityId, workType) {
+    const activities = readJson('activities.json');
+    const a = activities.find(a => a.id === activityId);
+    if (a) a.work_type = workType;
+    writeJson('activities.json', activities);
+    return { success: true };
+  },
+
   // idle 복원: 마지막 활동의 ended_at을 idle 시작 직전으로 조정
   extendActivity(activityId, newEndedAt) {
     const activities = readJson('activities.json');

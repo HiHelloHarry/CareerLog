@@ -1,5 +1,10 @@
 import { useState, useMemo } from 'react'
 
+const WORK_TYPES = [
+  '기능 개발', '버그 수정', '기획·설계', '리뷰·분석',
+  '문서 작업', '미팅·커뮤니케이션', 'QA·테스트', '기타',
+]
+
 export default function TaggingSession({ timeline, onComplete }) {
   // 앱별로 그룹핑
   const groups = useMemo(() => groupByApp(timeline), [timeline])
@@ -8,20 +13,22 @@ export default function TaggingSession({ timeline, onComplete }) {
     groups.forEach(g => { init[g.appName] = g.existingMemo })
     return init
   })
+  const [workTypes, setWorkTypes] = useState({})
   const [saving, setSaving] = useState(false)
 
   async function handleComplete() {
     setSaving(true)
-    // 각 그룹의 태그를 대표 활동(가장 긴 것)에 저장
     for (const g of groups) {
       const tag = tags[g.appName]?.trim()
       if (tag) await window.careerlog.saveTag(g.representativeId, tag)
+      const wt = workTypes[g.appName]
+      if (wt) await window.careerlog.saveWorkType(g.representativeId, wt)
     }
     setSaving(false)
     onComplete()
   }
 
-  const filledCount = groups.filter(g => tags[g.appName]?.trim()).length
+  const filledCount = groups.filter(g => tags[g.appName]?.trim() || workTypes[g.appName]).length
 
   return (
     <div style={{
@@ -68,6 +75,8 @@ export default function TaggingSession({ timeline, onComplete }) {
             group={g}
             value={tags[g.appName] || ''}
             onChange={val => setTags(prev => ({ ...prev, [g.appName]: val }))}
+            workType={workTypes[g.appName] || ''}
+            onWorkTypeChange={val => setWorkTypes(prev => ({ ...prev, [g.appName]: val }))}
           />
         ))}
       </div>
@@ -93,13 +102,14 @@ export default function TaggingSession({ timeline, onComplete }) {
   )
 }
 
-function AppTagCard({ group, value, onChange }) {
+function AppTagCard({ group, value, onChange, workType, onWorkTypeChange }) {
   const [focused, setFocused] = useState(false)
+  const filled = value || workType
 
   return (
     <div style={{
       background: 'var(--bg2)',
-      border: `1px solid ${focused ? 'var(--a)' : value ? 'rgba(212,168,75,.2)' : 'var(--border)'}`,
+      border: `1px solid ${focused ? 'var(--a)' : filled ? 'rgba(212,168,75,.2)' : 'var(--border)'}`,
       borderRadius: 12, padding: '14px 16px',
       transition: 'border-color .15s',
     }}>
@@ -107,8 +117,8 @@ function AppTagCard({ group, value, onChange }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <span style={{
           width: 36, height: 36, borderRadius: '50%',
-          background: value ? 'var(--a-dim)' : 'var(--bg3)',
-          border: `1.5px solid ${value ? 'rgba(212,168,75,.3)' : 'var(--border)'}`,
+          background: filled ? 'var(--a-dim)' : 'var(--bg3)',
+          border: `1.5px solid ${filled ? 'rgba(212,168,75,.3)' : 'var(--border)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 16, flexShrink: 0, transition: 'all .15s',
         }}>{group.icon}</span>
@@ -126,10 +136,29 @@ function AppTagCard({ group, value, onChange }) {
             </p>
           )}
         </div>
-        {value && <span style={{ fontSize: 14, color: 'var(--g)', flexShrink: 0 }}>✓</span>}
+        {filled && <span style={{ fontSize: 14, color: 'var(--g)', flexShrink: 0 }}>✓</span>}
       </div>
 
-      {/* 태그 입력 */}
+      {/* 작업 유형 칩 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+        {WORK_TYPES.map(type => (
+          <button
+            key={type}
+            onClick={() => onWorkTypeChange(workType === type ? '' : type)}
+            style={{
+              padding: '4px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+              border: `1px solid ${workType === type ? 'var(--a)' : 'var(--border)'}`,
+              background: workType === type ? 'var(--a-dim)' : 'var(--bg3)',
+              color: workType === type ? 'var(--a)' : 'var(--ink3)',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontWeight: workType === type ? 700 : 400,
+              transition: 'all .15s',
+            }}
+          >{type}</button>
+        ))}
+      </div>
+
+      {/* 상세 메모 입력 */}
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
