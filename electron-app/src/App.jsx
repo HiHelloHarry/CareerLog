@@ -358,7 +358,7 @@ export default function App() {
             </div>
           )}
           {view === 'career' && (
-            <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 20px 24px' }}>
+            <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 24px 24px' }}>
               <CareerResult
                 content={careerContent}
                 star={careerStar}

@@ -23,11 +23,17 @@ electron-app/src/
     Home.jsx / Timeline.jsx / CareerResult.jsx
     Settings.jsx / Onboarding.jsx / Done.jsx
     TaggingSession.jsx / Dashboard.jsx
+    career/
+      ProfileHero.jsx   프로필 카드 + 대시보드 통계 그리드
+      CalendarView.jsx  월별 캘린더 + 프로젝트 태그
+      RecordCard.jsx    개별 기록 카드 (2열 그리드용)
+      DetailDrawer.jsx  오른쪽 슬라이드 드로어 (STAR/불릿/편집/액션)
 backend/
   server.js        Railway 배포용 Express 서버 (현재 미사용)
 상세기획/
   dashboard-spec-v1.md  대시보드 기획서 (PD 리뷰 완료)
   recording-accuracy-upgrade-v1.md  기록 정확도 고도화 기획서 (구현 완료)
+  career-result-redesign-v1.md  경력 기록 뷰 리디자인 기획서 (구현 완료)
 ```
 
 ## 데이터 파일 (userData/data/ = C:\Users\<user>\AppData\Roaming\CareerLog\data\)
@@ -107,7 +113,7 @@ timeline이 비어있어도 헤더+날짜 피커는 항상 렌더링 (빈 상태
 `handleNavClick('timeline')` → `handleNavigateTimeline()` 호출.
 sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setView만 하면 히스토리 안 보임.
 
-## 구현된 기능 목록 (v0.7)
+## 구현된 기능 목록 (v0.8)
 - R1: 샘플 데이터 온보딩 체험 (Onboarding.jsx)
 - R2: 타임라인 앱별 그룹 뷰 + 시간순 토글 (Timeline.jsx)
 - R3: 직군/직급/기술스택 프로필 설정 + AI 프롬프트 주입 (Settings.jsx, ai.js)
@@ -137,6 +143,15 @@ sessionId 없으면 `getSessions()[0]`(최신)으로 자동 로드. 직접 setVi
   - 작업 흐름(Flow) 감지 — 개별 앱 전환을 의미 단위로 묶음
   - AI 프롬프트 flow 기반 구조화 (핵심/보조 역할 태그)
   - mergeShortActivities 앱 불일치 병합 버그 수정
+- 경력 기록 뷰 리디자인 v0.8 (CareerResult.jsx, career/*.jsx)
+  - 3단 레이아웃: 프로필+대시보드 / 캘린더 / 업무 카드
+  - ProfileHero: 프로필 카드 + 이번 주·총 업무일·경력기록 수 통계 + 주간 바차트 + TOP 도구
+  - CalendarView: 월별 캘린더, 기록 있는 날짜에 프로젝트 태그 표시, 클릭 시 카드 필터링
+  - RecordCard: 2열 카드 그리드 + 월별 구분선, 한줄 요약 + 스킬 칩 (STAR 전문 숨김)
+  - DetailDrawer: 카드 클릭 시 오른쪽 슬라이드 드로어로 STAR/불릿 상세, 키보드 좌우 이동
+  - 기존 기능 100% 보존 (복사 3종, 내보내기, 수정, 재생성, 삭제)
+  - 프로젝트 필터 + 키워드 검색 추가
+  - getDashboardStats / getAppSettings 자체 로드 (App.jsx에서 props 불필요)
 
 ## 빌드 & 배포 순서
 ```bash

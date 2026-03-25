@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareerLog — 경력 기록 리디자인 v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a1a1f; --bg2: #22222a; --bg3: #2a2a34;
+  --border: #333340; --border2: #3a3a48;
+  --ink: #e8e6e1; --ink2: #b8b5ad; --ink3: #7d7a72; --ink4: #5a584f;
+  --a: #d4a84b; --a-dim: rgba(212,168,75,.1);
+  --b: #5fa8d3; --b-dim: rgba(95,168,211,.1);
+  --g: #52b788; --g-dim: rgba(82,183,136,.1);
+  --r: #e07070; --shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--ink); overflow:hidden; height:100vh; }
+
+/* App Shell */
+.app-shell { display:flex; height:100vh; }
+
+/* Sidebar Nav */
+.sidebar-nav {
+  width:56px; background:var(--bg2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:4px; flex-shrink:0;
+}
+.nav-icon {
+  width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;transition:all .15s;color:var(--ink3);border:none;background:transparent;
+}
+.nav-icon:hover { background:var(--bg3);color:var(--ink2); }
+.nav-icon.active { background:var(--a-dim);color:var(--a); }
+.nav-logo { font-family:'DM Serif Display',serif;font-size:16px;color:var(--a);margin-bottom:16px;letter-spacing:-.5px; }
+
+/* Main */
+.main-area { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+.main-scroll { flex:1; overflow-y:auto; padding:0 32px 40px; }
+.main-scroll::-webkit-scrollbar { width:6px; }
+.main-scroll::-webkit-scrollbar-track { background:transparent; }
+.main-scroll::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
+
+/* ═══ SECTION 1: Profile + Dashboard Hero ═══ */
+.hero-section {
+  display:flex; gap:16px; padding:24px 0 0; align-items:stretch;
+}
+.profile-card {
+  width:220px; flex-shrink:0; background:var(--bg2); border:1px solid var(--border);
+  border-radius:14px; padding:20px; display:flex; flex-direction:column; align-items:center;
+}
+.avatar {
+  width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--g));
+  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#000;
+}
+.profile-name { font-size:16px;font-weight:700;margin-top:12px;color:var(--ink); }
+.profile-role { font-size:12px;color:var(--ink3);margin-top:3px; }
+.profile-skills { display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;justify-content:center; }
+.profile-chip {
+  font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;
+  background:var(--bg3);color:var(--ink3);border:1px solid var(--border2);
+}
+.profile-streak {
+  margin-top:auto; padding-top:14px; border-top:1px solid var(--border);
+  width:100%; text-align:center;
+}
+.streak-num { font-family:'DM Serif Display',serif;font-size:28px;color:var(--a); }
+.streak-label { font-size:11px;color:var(--ink3);margin-top:2px; }
+
+/* Dashboard Stats */
+.dashboard-stats {
+  flex:1; display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+}
+.stat-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:16px; display:flex; flex-direction:column;
+}
+.stat-label { font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.3px; }
+.stat-value { font-family:'DM Serif Display',serif;font-size:26px;color:var(--ink);margin-top:6px; }
+.stat-sub { font-size:11px;color:var(--ink4);margin-top:4px; }
+.stat-card.highlight { border-color:rgba(212,168,75,.3); }
+.stat-card.highlight .stat-value { color:var(--a); }
+.stat-badge {
+  display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  margin-top:8px;align-self:flex-start;
+}
+.badge-up { background:var(--g-dim);color:var(--g); }
+.badge-gold { background:var(--a-dim);color:var(--a); }
+
+/* mini heatmap inside stat card */
+.mini-heatmap { display:flex;gap:2px;margin-top:auto;padding-top:10px;flex-wrap:wrap; }
+.hm-cell {
+  width:10px;height:10px;border-radius:2px;background:var(--bg3);
+}
+.hm-1 { background:rgba(82,183,136,.2); }
+.hm-2 { background:rgba(82,183,136,.4); }
+.hm-3 { background:rgba(82,183,136,.6); }
+.hm-4 { background:rgba(82,183,136,.85); }
+
+/* top tools */
+.top-tools { display:flex;flex-direction:column;gap:6px;margin-top:10px; }
+.tool-row { display:flex;align-items:center;gap:8px;font-size:11.5px; }
+.tool-bar-bg { flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden; }
+.tool-bar-fill { height:100%;border-radius:3px;background:var(--b); }
+.tool-name { width:60px;color:var(--ink2);font-weight:500; }
+.tool-time { width:35px;text-align:right;color:var(--ink3);font-size:10.5px; }
+
+/* ═══ SECTION 2: Calendar ═══ */
+.calendar-section {
+  margin-top:20px; background:var(--bg2); border:1px solid var(--border);
+  border-radius:14px; padding:18px 20px;
+}
+.cal-header {
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+}
+.cal-title { font-size:15px;font-weight:700;color:var(--ink); }
+.cal-nav { display:flex;gap:6px; }
+.cal-nav-btn {
+  padding:4px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
+  color:var(--ink3);font-size:12px;cursor:pointer;transition:all .15s;font-family:'Noto Sans KR',sans-serif;
+}
+.cal-nav-btn:hover { color:var(--ink2);border-color:var(--a); }
+
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-dow {
+  text-align:center;font-size:10.5px;font-weight:600;color:var(--ink4);
+  padding:4px 0;
+}
+.cal-day {
+  aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding:4px 2px;
+  cursor:pointer;transition:all .12s;position:relative; min-height:48px;
+}
+.cal-day:hover { background:var(--bg3); }
+.cal-day.empty { pointer-events:none; }
+.cal-day-num { font-size:11px;font-weight:600;color:var(--ink3); }
+.cal-day.today .cal-day-num { color:var(--a);font-weight:700; }
+.cal-day.today { background:var(--a-dim);border:1px solid rgba(212,168,75,.25); }
+.cal-day.has-record { background:rgba(82,183,136,.06); }
+.cal-day.has-record:hover { background:rgba(82,183,136,.12); }
+.cal-day.selected { background:var(--a-dim);border:1.5px solid var(--a); }
+
+.cal-tags {
+  display:flex;flex-direction:column;gap:1px;margin-top:2px;width:100%;
+  overflow:hidden;max-height:28px;
+}
+.cal-tag {
+  font-size:7.5px;font-weight:600;padding:1px 3px;border-radius:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
+  line-height:1.4;
+}
+.cal-tag.dev { background:rgba(95,168,211,.15);color:var(--b); }
+.cal-tag.plan { background:rgba(212,168,75,.15);color:var(--a); }
+.cal-tag.data { background:rgba(82,183,136,.15);color:var(--g); }
+.cal-tag.api { background:rgba(224,112,112,.15);color:var(--r); }
+
+/* more indicator */
+.cal-more { font-size:7px;color:var(--ink4);margin-top:1px; }
+
+/* ═══ SECTION 3: Work Cards ═══ */
+.cards-section { margin-top:20px; }
+.cards-header {
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+}
+.cards-title { font-size:15px;font-weight:700;color:var(--ink); }
+.cards-filter { display:flex;gap:8px;align-items:center; }
+.filter-select {
+  padding:6px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;
+  font-size:11.5px;color:var(--ink2);font-family:'Noto Sans KR',sans-serif;cursor:pointer;outline:none;
+}
+.filter-search {
+  padding:6px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;
+  font-size:11.5px;color:var(--ink);font-family:'Noto Sans KR',sans-serif;outline:none;width:150px;
+}
+.filter-search::placeholder { color:var(--ink4); }
+.filter-search:focus { border-color:var(--a); }
+
+.month-divider { display:flex;align-items:center;gap:12px;margin:18px 0 12px; }
+.month-divider:first-child { margin-top:0; }
+.month-label { font-size:13px;font-weight:700;color:var(--ink3);white-space:nowrap; }
+.month-count { font-size:11px;color:var(--ink4); }
+.month-line { flex:1;height:1px;background:var(--border); }
+
+.card-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:10px; }
+
+/* Record Card */
+.record-card {
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+}
+.record-card:hover { border-color:var(--a);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2); }
+.record-card.selected { border:1.5px solid var(--a);background:var(--a-dim); }
+.record-card.is-new::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--a); }
+.card-date { font-size:12px;font-weight:700;color:var(--ink2); }
+.card-project { font-size:11px;color:var(--ink3); }
+.card-summary {
+  font-size:13px;color:var(--ink);line-height:1.6;margin-top:8px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-chips { display:flex;flex-wrap:wrap;gap:5px;margin-top:10px; }
+.chip {
+  font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;
+  background:var(--b-dim);color:var(--b);border:1px solid rgba(95,168,211,.2);
+}
+.card-badge { font-size:10.5px;font-weight:700;color:var(--g);margin-top:6px; }
+.card-new-badge { font-size:10.5px;font-weight:700;color:var(--a);margin-top:6px; }
+
+/* ═══ Drawer ═══ */
+.drawer-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:100;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.drawer-overlay.open { opacity:1;pointer-events:auto; }
+
+.detail-drawer {
+  position:fixed;top:0;right:0;bottom:0;width:440px;background:var(--bg);
+  border-left:1px solid var(--border);z-index:200;transform:translateX(100%);
+  transition:transform .25s ease-out;display:flex;flex-direction:column;
+  box-shadow:-8px 0 40px rgba(0,0,0,.3);
+}
+.detail-drawer.open { transform:translateX(0); }
+
+.drawer-header {
+  padding:20px 24px 16px;display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.drawer-close {
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);
+  color:var(--ink3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.drawer-close:hover { background:var(--bg3);color:var(--ink); }
+.drawer-nav-btns { display:flex;gap:4px;margin-top:8px; }
+.drawer-nav-btn {
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);
+  color:var(--ink3);font-size:11px;cursor:pointer;transition:all .15s;font-family:'Noto Sans KR',sans-serif;
+}
+.drawer-nav-btn:hover { background:var(--bg3);color:var(--ink2); }
+.drawer-title { font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink); }
+.drawer-date { font-size:12px;color:var(--ink3);margin-top:4px; }
+.drawer-project-chip {
+  display:inline-block;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;
+  background:var(--a-dim);color:var(--a);margin-top:6px;
+}
+
+.drawer-toggle {
+  display:flex;background:var(--bg3);border-radius:8px;padding:3px;gap:2px;margin:16px 24px 0;flex-shrink:0;
+}
+.toggle-btn {
+  flex:1;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer;
+  transition:all .15s;background:transparent;color:var(--ink3);font-family:'Noto Sans KR',sans-serif;
+}
+.toggle-btn.active { background:var(--bg2);color:var(--ink); }
+
+.drawer-content { flex:1;overflow-y:auto;padding:16px 24px; }
+.drawer-content::-webkit-scrollbar { width:5px; }
+.drawer-content::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
+
+.star-card { border-radius:10px;overflow:hidden;margin-bottom:8px; }
+.star-card-header { padding:8px 14px;display:flex;justify-content:space-between;align-items:center; }
+.star-card-label { font-size:11.5px;font-weight:700;letter-spacing:.3px; }
+.star-card-body { padding:12px 14px;font-size:13.5px;line-height:1.7;color:var(--ink); }
+
+.star-s { background:var(--bg2);border:1px solid rgba(95,168,211,.25); }
+.star-s .star-card-header { background:var(--b-dim);border-bottom:1px solid rgba(95,168,211,.25); }
+.star-s .star-card-label { color:var(--b); }
+.star-t { background:var(--bg2);border:1px solid rgba(212,168,75,.25); }
+.star-t .star-card-header { background:var(--a-dim);border-bottom:1px solid rgba(212,168,75,.25); }
+.star-t .star-card-label { color:var(--a); }
+.star-a { background:var(--bg2);border:1px solid rgba(82,183,136,.25); }
+.star-a .star-card-header { background:var(--g-dim);border-bottom:1px solid rgba(82,183,136,.25); }
+.star-a .star-card-label { color:var(--g); }
+.star-r { background:var(--bg2);border:1px solid var(--border2); }
+.star-r .star-card-header { background:var(--bg3);border-bottom:1px solid var(--border2); }
+.star-r .star-card-label { color:var(--ink); }
+
+.metrics-banner {
+  background:var(--g-dim);border:1.5px solid rgba(82,183,136,.25);border-radius:10px;
+  padding:10px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;
+}
+.metrics-badge { background:var(--g);color:#000;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0; }
+.metrics-text { font-size:12.5px;color:var(--g);font-weight:600; }
+
+.skills-section { background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px; }
+.skills-label { font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.3px;margin-bottom:8px; }
+.skills-chips { display:flex;flex-wrap:wrap;gap:6px; }
+
+.bullet-view { background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px; }
+.bullet-item { font-size:13.5px;line-height:1.8;color:var(--ink);padding:4px 0 4px 16px;position:relative; }
+.bullet-item::before { content:'•';position:absolute;left:0;color:var(--a);font-weight:700; }
+
+.drawer-actions {
+  padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;
+}
+.action-btn {
+  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border2);
+  background:var(--bg2);color:var(--ink2);cursor:pointer;transition:all .15s;font-family:'Noto Sans KR',sans-serif;
+}
+.action-btn:hover { background:var(--bg3); }
+.action-btn.primary { background:var(--a);color:#000;border-color:transparent; }
+.action-btn.primary:hover { background:#e8bc5a; }
+.action-btn.danger { color:var(--r);border-color:rgba(224,112,112,.3); }
+
+/* Animation */
+.fade-up { animation:fadeUp .3s ease-out; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Sidebar Nav -->
+  <nav class="sidebar-nav">
+    <div class="nav-logo">CL</div>
+    <button class="nav-icon" title="홈">🏠</button>
+    <button class="nav-icon" title="타임라인">📋</button>
+    <button class="nav-icon active" title="경력 기록">✦</button>
+    <button class="nav-icon" title="설정" style="margin-top:auto">⚙</button>
+  </nav>
+
+  <div class="main-area">
+    <div class="main-scroll">
+
+      <!-- ═══ SECTION 1: Profile + Dashboard ═══ -->
+      <div class="hero-section fade-up">
+        <!-- Profile Card -->
+        <div class="profile-card">
+          <div class="avatar">H</div>
+          <div class="profile-name">Harry</div>
+          <div class="profile-role">Product Manager · 주니어</div>
+          <div class="profile-skills">
+            <span class="profile-chip">React</span>
+            <span class="profile-chip">Node.js</span>
+            <span class="profile-chip">Figma</span>
+            <span class="profile-chip">SQL</span>
+            <span class="profile-chip">Python</span>
+          </div>
+          <div class="profile-streak">
+            <div class="streak-num">12</div>
+            <div class="streak-label">일 연속 기록 🔥</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="dashboard-stats">
+          <div class="stat-card highlight">
+            <span class="stat-label">이번 주</span>
+            <span class="stat-value">23.5h</span>
+            <span class="stat-sub">5개 경력 기록 생성</span>
+            <span class="stat-badge badge-up">↑ 18% vs 지난주</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">이번 달</span>
+            <span class="stat-value">87.2h</span>
+            <span class="stat-sub">23개 경력 기록</span>
+            <span class="stat-badge badge-gold">피크: 화요일 오후</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">누적 경력 기록</span>
+            <span class="stat-value">142</span>
+            <span class="stat-sub">2025.10 ~</span>
+          </div>
+
+          <div class="stat-card" style="grid-column:span 2">
+            <span class="stat-label">12주 활동 히트맵</span>
+            <div class="mini-heatmap" style="margin-top:10px">
+              <!-- 12 weeks x 5 days = 60 cells -->
+              <span class="hm-cell hm-1"></span><span class="hm-cell hm-2"></span><span class="hm-cell"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-3"></span>
+              <span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-1"></span><span class="hm-cell"></span><span class="hm-cell hm-2"></span>
+              <span class="hm-cell"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span>
+              <span class="hm-cell hm-1"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-1"></span>
+              <span class="hm-cell hm-2"></span><span class="hm-cell"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-4"></span>
+              <span class="hm-cell hm-3"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-2"></span>
+              <span class="hm-cell"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-3"></span>
+              <span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-2"></span><span class="hm-cell"></span>
+              <span class="hm-cell hm-1"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-3"></span>
+              <span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span>
+              <span class="hm-cell hm-2"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-3"></span>
+              <span class="hm-cell hm-4"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-4"></span><span class="hm-cell hm-4"></span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">TOP 사용 도구</span>
+            <div class="top-tools">
+              <div class="tool-row"><span class="tool-name">VS Code</span><div class="tool-bar-bg"><div class="tool-bar-fill" style="width:85%"></div></div><span class="tool-time">34h</span></div>
+              <div class="tool-row"><span class="tool-name">Chrome</span><div class="tool-bar-bg"><div class="tool-bar-fill" style="width:62%"></div></div><span class="tool-time">24h</span></div>
+              <div class="tool-row"><span class="tool-name">Figma</span><div class="tool-bar-bg"><div class="tool-bar-fill" style="width:38%"></div></div><span class="tool-time">15h</span></div>
+              <div class="tool-row"><span class="tool-name">Notion</span><div class="tool-bar-bg"><div class="tool-bar-fill" style="width:25%"></div></div><span class="tool-time">10h</span></div>
+              <div class="tool-row"><span class="tool-name">Slack</span><div class="tool-bar-bg"><div class="tool-bar-fill" style="width:15%"></div></div><span class="tool-time">6h</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 2: Calendar ═══ -->
+      <div class="calendar-section fade-up" style="animation-delay:.1s">
+        <div class="cal-header">
+          <div class="cal-title">2026년 3월</div>
+          <div class="cal-nav">
+            <button class="cal-nav-btn">← 2월</button>
+            <button class="cal-nav-btn" style="color:var(--a);border-color:var(--a)">오늘</button>
+            <button class="cal-nav-btn" style="opacity:.4;pointer-events:none">4월 →</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid">
+          <div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div>
+          <div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow" style="color:var(--b)">토</div>
+          <div class="cal-dow" style="color:var(--r)">일</div>
+          <!-- 3월 시작: 일요일 -->
+          <!-- wk1 -->
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+          <div class="cal-day has-record" onclick="filterByDate(1)">
+            <span class="cal-day-num">1</span>
+          </div>
+          <!-- wk2 -->
+          <div class="cal-day has-record" onclick="filterByDate(2)"><span class="cal-day-num">2</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(3)">
+            <span class="cal-day-num">3</span>
+            <div class="cal-tags"><span class="cal-tag dev">URL추출</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">4</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(5)"><span class="cal-day-num">5</span></div>
+          <div class="cal-day"><span class="cal-day-num">6</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(7)">
+            <span class="cal-day-num">7</span>
+            <div class="cal-tags"><span class="cal-tag plan">UX플로우</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">8</span></div>
+          <!-- wk3 -->
+          <div class="cal-day has-record" onclick="filterByDate(9)"><span class="cal-day-num">9</span></div>
+          <div class="cal-day"><span class="cal-day-num">10</span></div>
+          <div class="cal-day"><span class="cal-day-num">11</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(12)">
+            <span class="cal-day-num">12</span>
+            <div class="cal-tags"><span class="cal-tag data">리텐션</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">13</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(14)">
+            <span class="cal-day-num">14</span>
+            <div class="cal-tags"><span class="cal-tag dev">파서17개</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">15</span></div>
+          <!-- wk4 -->
+          <div class="cal-day has-record" onclick="filterByDate(16)"><span class="cal-day-num">16</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(17)">
+            <span class="cal-day-num">17</span>
+            <div class="cal-tags"><span class="cal-tag api">API설계</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">18</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(19)">
+            <span class="cal-day-num">19</span>
+            <div class="cal-tags"><span class="cal-tag dev">Win32</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">20</span></div>
+          <div class="cal-day has-record" onclick="filterByDate(21)">
+            <span class="cal-day-num">21</span>
+            <div class="cal-tags"><span class="cal-tag plan">Q1성과</span></div>
+          </div>
+          <div class="cal-day"><span class="cal-day-num">22</span></div>
+          <!-- wk5 -->
+          <div class="cal-day has-record" onclick="filterByDate(23)"><span class="cal-day-num">23</span></div>
+          <div class="cal-day has-record today selected" onclick="filterByDate(24)">
+            <span class="cal-day-num">24</span>
+            <div class="cal-tags"><span class="cal-tag dev">대시보드</span></div>
+          </div>
+          <div class="cal-day today" onclick="filterByDate(25)"><span class="cal-day-num">25</span></div>
+          <div class="cal-day"><span class="cal-day-num">26</span></div>
+          <div class="cal-day"><span class="cal-day-num">27</span></div>
+          <div class="cal-day"><span class="cal-day-num">28</span></div>
+          <div class="cal-day"><span class="cal-day-num">29</span></div>
+          <!-- wk6 -->
+          <div class="cal-day"><span class="cal-day-num">30</span></div>
+          <div class="cal-day"><span class="cal-day-num">31</span></div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 3: Work Cards ═══ -->
+      <div class="cards-section fade-up" style="animation-delay:.15s">
+        <div class="cards-header">
+          <div class="cards-title">경력 기록</div>
+          <div class="cards-filter">
+            <select class="filter-select">
+              <option>📁 전체</option>
+              <option>📁 CareerLog 개발</option>
+              <option>📁 서비스 기획</option>
+              <option>📁 API 설계</option>
+              <option>📁 데이터 분석</option>
+            </select>
+            <input class="filter-search" type="text" placeholder="🔍 검색...">
+          </div>
+        </div>
+
+        <!-- 3월 -->
+        <div class="month-divider">
+          <span class="month-label">3월</span>
+          <span class="month-count">8건</span>
+          <div class="month-line"></div>
+        </div>
+        <div class="card-grid">
+          <div class="record-card is-new" onclick="openDrawer(0)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.24 (월)</span><span class="card-project">· CareerLog 개발</span>
+            </div>
+            <p class="card-summary">Electron 앱 대시보드 통계 API 연동 및 12주 히트맵 시각화 구현 완료</p>
+            <div class="card-chips"><span class="chip">React</span><span class="chip">Electron</span><span class="chip">D3.js</span></div>
+            <div class="card-badge">● 수치 포함</div>
+            <div class="card-new-badge">✦ 방금 생성됨</div>
+          </div>
+          <div class="record-card" onclick="openDrawer(1)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.21 (금)</span><span class="card-project">· 서비스 기획</span>
+            </div>
+            <p class="card-summary">Q1 성과 보고서 작성 및 핵심 지표 데이터 시각화 기획</p>
+            <div class="card-chips"><span class="chip">Figma</span><span class="chip">Notion</span><span class="chip">Excel</span></div>
+          </div>
+          <div class="record-card" onclick="openDrawer(2)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.19 (수)</span><span class="card-project">· CareerLog 개발</span>
+            </div>
+            <p class="card-summary">PowerShell 기반 활동 감지 시스템을 Win32 API로 리팩토링하여 정확도 향상</p>
+            <div class="card-chips"><span class="chip">PowerShell</span><span class="chip">Win32 API</span></div>
+            <div class="card-badge">● 수치 포함</div>
+          </div>
+          <div class="record-card" onclick="openDrawer(3)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.17 (월)</span><span class="card-project">· API 설계</span>
+            </div>
+            <p class="card-summary">REST API 엔드포인트 설계 및 Swagger 기반 API 문서 자동화 구축</p>
+            <div class="card-chips"><span class="chip">Node.js</span><span class="chip">Swagger</span><span class="chip">Postman</span></div>
+          </div>
+          <div class="record-card" onclick="openDrawer(4)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.14 (금)</span><span class="card-project">· CareerLog 개발</span>
+            </div>
+            <p class="card-summary">앱별 창 제목 파서 17개 구현으로 활동 기록 구조화 메타데이터 저장</p>
+            <div class="card-chips"><span class="chip">JavaScript</span><span class="chip">Regex</span></div>
+          </div>
+          <div class="record-card" onclick="openDrawer(5)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="card-date">3.12 (수)</span><span class="card-project">· 데이터 분석</span>
+            </div>
+            <p class="card-summary">사용자 리텐션 코호트 분석 및 주간 DAU/WAU 트렌드 리포트 작성</p>
+            <div class="card-chips"><span class="chip">SQL</span><span class="chip">Python</span><span class="chip">Tableau</span></div>
+            <div class="card-badge">● 수치 포함</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-scroll -->
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="detail-drawer" id="detailDrawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title" id="drawerTitle"></div>
+      <div class="drawer-date" id="drawerDate"></div>
+      <div class="drawer-project-chip" id="drawerProject"></div>
+      <div class="drawer-nav-btns">
+        <button class="drawer-nav-btn" onclick="navigateDrawer(-1)">← 이전</button>
+        <button class="drawer-nav-btn" onclick="navigateDrawer(1)">다음 →</button>
+      </div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-toggle">
+    <button class="toggle-btn active" id="toggleStar" onclick="setView('star')">STAR</button>
+    <button class="toggle-btn" id="toggleBullet" onclick="setView('bullets')">불릿</button>
+  </div>
+  <div class="drawer-content" id="drawerContent"></div>
+  <div class="drawer-actions">
+    <button class="action-btn primary">⎘ 복사</button>
+    <button class="action-btn">↓ 내보내기</button>
+    <button class="action-btn">✏ 수정</button>
+    <button class="action-btn">↺ 재생성</button>
+    <button class="action-btn danger">삭제</button>
+  </div>
+</div>
+
+<script>
+const records = [
+  {
+    date:'3월 24일 (월)',project:'CareerLog 개발',
+    situation:'CareerLog Electron 앱에 사용자의 업무 패턴을 시각적으로 보여주는 대시보드가 필요했다. 기존에는 타임라인에서 개별 활동만 확인 가능했고, 전체적인 업무 트렌드를 파악할 방법이 없었다.',
+    task:'12주 히트맵, 누적 통계, 집중 스트릭, 앱별 사용 시간 등을 포함한 종합 대시보드를 설계하고 구현해야 했다.',
+    action:'database.js에 getDashboardStats() 함수를 추가하여 세션/활동 데이터를 집계하고, Dashboard.jsx에서 12주 히트맵(셀 클릭 → 타임라인 이동), 이번 주 히어로 카드, 앱별 TOP 5 사용 도구를 구현했다.',
+    result:'대시보드 로딩 속도 200ms 이내 달성. 12주간의 업무 패턴이 히트맵으로 한눈에 파악 가능해졌다.',
+    skills:['React','Electron','D3.js','JavaScript'],
+    metrics:['로딩 200ms 이내','12주 히트맵'],
+    bullets:['Electron 앱에 종합 대시보드 구현 — 12주 히트맵, 누적 통계, 집중 스트릭 포함','로컬 JSON 기반 데이터 집계 파이프라인 설계로 200ms 이내 로딩 달성','히트맵 셀 클릭 → 타임라인 날짜 이동 인터랙션 구현']
+  },
+  {
+    date:'3월 21일 (금)',project:'서비스 기획',
+    situation:'Q1 분기가 마무리되면서 팀 전체의 성과를 정리하고 경영진에게 보고할 자료가 필요했다.',
+    task:'주요 KPI(DAU, 전환율, NPS)를 한 장으로 요약하고, 데이터 시각화를 포함한 성과 보고서를 작성해야 했다.',
+    action:'Notion에서 보고서 구조를 잡고, Mixpanel/GA 데이터를 Excel로 추출하여 차트를 제작했다. Figma로 프레젠테이션 슬라이드를 디자인했다.',
+    result:'30페이지 분량의 Q1 성과 보고서 완성. 경영진 리뷰에서 데이터 기반 의사결정 자료로 채택.',
+    skills:['Figma','Notion','Excel'],metrics:[],
+    bullets:['Q1 성과 보고서 30페이지 작성 — 핵심 KPI 통합 정리','Mixpanel/GA 데이터 기반 시각화 차트 제작','경영진 리뷰에서 데이터 기반 의사결정 자료로 채택']
+  },
+  {
+    date:'3월 19일 (수)',project:'CareerLog 개발',
+    situation:'기존 활동 감지 시스템이 execFile 방식으로 10초마다 PowerShell을 새로 실행하여 타임아웃 버그와 성능 문제가 발생했다.',
+    task:'PowerShell 영구 프로세스로 전환하고 Win32 API를 통해 정확한 포그라운드 창 감지를 구현해야 했다.',
+    action:'Add-Type으로 C# 코드를 1회 컴파일한 후 10초 루프에서 GetForegroundWindow() → GetWindowText() → GetWindowThreadProcessId() 순서로 조회하도록 리팩토링했다.',
+    result:'CPU 사용량 60% 감소, 타임아웃 버그 완전 해소. 앱/창 교차 오염 버그 수정.',
+    skills:['PowerShell','Win32 API','C#','Electron'],
+    metrics:['CPU 60% 감소','타임아웃 해소'],
+    bullets:['PowerShell 영구 프로세스 + Win32 API로 활동 감지 전면 교체','CPU 사용량 60% 감소 및 타임아웃 버그 해소','앱/창 제목 교차 오염 버그 수정']
+  }
+];
+
+let idx=0, view='star';
+
+function openDrawer(i){
+  idx=i;
+  const r=records[Math.min(i,records.length-1)]||records[0];
+  document.getElementById('drawerTitle').textContent=r.project;
+  document.getElementById('drawerDate').textContent=r.date;
+  document.getElementById('drawerProject').textContent=r.project;
+  render(r);
+  document.getElementById('detailDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.querySelectorAll('.record-card').forEach((c,j)=>c.classList.toggle('selected',j===i));
+}
+function closeDrawer(){
+  document.getElementById('detailDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.querySelectorAll('.record-card').forEach(c=>c.classList.remove('selected'));
+}
+function navigateDrawer(d){
+  const cards=document.querySelectorAll('.record-card');
+  idx=Math.max(0,Math.min(cards.length-1,idx+d));
+  openDrawer(idx);
+}
+function setView(v){
+  view=v;
+  document.getElementById('toggleStar').classList.toggle('active',v==='star');
+  document.getElementById('toggleBullet').classList.toggle('active',v==='bullets');
+  render(records[Math.min(idx,records.length-1)]||records[0]);
+}
+function render(r){
+  const c=document.getElementById('drawerContent');
+  if(view==='star'){
+    let h='';
+    if(r.metrics?.length) h+=`<div class="metrics-banner"><span class="metrics-badge">수치 발견!</span><div>${r.metrics.map(m=>`<span class="metrics-text">${m}</span>`).join(' · ')}</div></div>`;
+    [{k:'situation',l:'Situation',c:'star-s'},{k:'task',l:'Task',c:'star-t'},{k:'action',l:'Action',c:'star-a'},{k:'result',l:'Result',c:'star-r'}].forEach(f=>{
+      if(r[f.k]) h+=`<div class="star-card ${f.c}"><div class="star-card-header"><span class="star-card-label">${f.l}</span>${f.k==='result'&&r.metrics?.length?'<span style="font-size:10.5px;color:var(--g);font-weight:700;background:var(--g-dim);padding:1px 7px;border-radius:20px">✓ 수치</span>':''}</div><div class="star-card-body">${r[f.k]}</div></div>`;
+    });
+    if(r.skills?.length) h+=`<div class="skills-section"><div class="skills-label">SKILLS</div><div class="skills-chips">${r.skills.map(s=>`<span class="chip">${s}</span>`).join('')}</div></div>`;
+    c.innerHTML=h;
+  } else {
+    c.innerHTML=`<div class="bullet-view">${(r.bullets||[]).map(b=>`<div class="bullet-item">${b}</div>`).join('')}</div>`;
+  }
+}
+function filterByDate(day){
+  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeDrawer();
+  if(e.key==='ArrowLeft')navigateDrawer(-1);
+  if(e.key==='ArrowRight')navigateDrawer(1);
+});
+</script>
+</body>
+</html>
